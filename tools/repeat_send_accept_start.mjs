@@ -19,7 +19,7 @@ function sleepMs(ms) {
 function tryFindReturn(browser) {
   const cropArgs = browser === "chrome-right"
     ? ["--x", "0", "--y", "1200", "--w", "1000", "--h", "900"]
-    : ["--x", "0", "--y", "1500", "--w", "700", "--h", "500"];
+    : ["--x", "0", "--y", "1200", "--w", "1000", "--h", "900"];
   try {
     return JSON.parse(runNode("find_text_in_browser.mjs", [browser, "返回", ...cropArgs]));
   } catch {
@@ -30,7 +30,7 @@ function tryFindReturn(browser) {
 function tryClickReturn(browser) {
   const cropArgs = browser === "chrome-right"
     ? ["--x", "0", "--y", "1200", "--w", "1000", "--h", "900"]
-    : ["--x", "0", "--y", "1500", "--w", "700", "--h", "500"];
+    : ["--x", "0", "--y", "1200", "--w", "1000", "--h", "900"];
   try {
     return JSON.parse(runNode("click_text_in_browser.mjs", [browser, "返回", ...cropArgs]));
   } catch {
