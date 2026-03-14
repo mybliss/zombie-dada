@@ -263,19 +263,18 @@ function ensureFriendsList() {
       hallInvite.inviteLine,
       { ...hallInvite.inviteLine, centerX: hallInvite.inviteLine.centerX - 80, centerY: hallInvite.inviteLine.centerY + 4 },
       { ...hallInvite.inviteLine, centerX: hallInvite.inviteLine.centerX - 130, centerY: hallInvite.inviteLine.centerY + 8 },
-      { ...hallInvite.inviteLine, centerX: hallInvite.inviteLine.centerX - 65, centerY: hallInvite.inviteLine.centerY - 10 },
     ];
     for (const candidate of candidates) {
       clickFromCrop(bounds, image, hallBottomRegion, candidate);
-      sleepMs(350);
+      sleepMs(180);
       image = captureChrome();
-      if (popupInviteButtonsMatch(image).matched || hasInvitePopup()) break;
+      if (popupInviteButtonsMatch(image).matched) break;
     }
 
     if (popupInviteButtonsMatch(image).matched || hasInvitePopup()) {
       for (let i = 0; i < 4; i += 1) {
         clickFriendsTab(bounds, image);
-        sleepMs(300);
+        sleepMs(180);
         image = captureChrome();
         const afterClick = listHasTargetName(image, targetName);
         if (afterClick.bestLine) {

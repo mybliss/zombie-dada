@@ -76,6 +76,10 @@ function waitForTextToDisappear(browser, text, timeoutMs, pollMs) {
   return null;
 }
 
+function now() {
+  return Date.now();
+}
+
 const friendName = process.argv[2] && !/^\d+$/.test(process.argv[2]) ? process.argv[2] : "";
 const timeoutArgIndex = friendName ? 3 : 2;
 const pollArgIndex = friendName ? 4 : 3;
@@ -84,9 +88,12 @@ const pollMs = Number.parseInt(process.argv[pollArgIndex] || "200", 10);
 const rightInviteCrop = ["--x", "500", "--y", "850", "--w", "1100", "--h", "1050"];
 const rightConfirmCrop = ["--x", "450", "--y", "650", "--w", "1300", "--h", "1100"];
 const edgeStartCrop = ["--x", "450", "--y", "1700", "--w", "650", "--h", "420"];
+const timings = {};
+const totalStart = now();
 
 sh(path.join(repoRoot, "tools", "focus_game_window.sh"), ["edge-left"]);
 sleepMs(250);
+const inviteStageStart = now();
 try {
   runNode("ensure_edge_left_hall.mjs");
 } catch {
@@ -98,9 +105,11 @@ if (friendName) {
 } else {
   runNode("game_flow.mjs", ["invite_first"]);
 }
+timings.inviteStageMs = now() - inviteStageStart;
 
 sh(path.join(repoRoot, "tools", "focus_game_window.sh"), ["chrome-right"]);
 sleepMs(250);
+const acceptStageStart = now();
 try {
   runNode("ensure_chrome_right_hall.mjs");
 } catch {
@@ -137,17 +146,21 @@ if (!confirmResult?.ok) {
   process.exit(1);
 }
 
+sleepMs(500);
 const rightRoomReady =
-  waitForOcrText("chrome-right", "等待开始", 10000, pollMs) ||
-  waitForOcrText("chrome-right", "离开", 3000, pollMs);
+  waitForOcrText("chrome-right", "等待开始", 1800, pollMs) ||
+  waitForOcrText("chrome-right", "离开", 1200, pollMs) ||
+  waitForOcrText("chrome-right", "催促", 1200, pollMs);
 if (!rightRoomReady) {
   console.error(JSON.stringify({ ok: false, reason: "right_chrome_not_in_room_after_accept" }, null, 2));
   process.exit(1);
 }
+timings.acceptStageMs = now() - acceptStageStart;
 
-sleepMs(2000);
+sleepMs(800);
 sh(path.join(repoRoot, "tools", "focus_game_window.sh"), ["edge-left"]);
 sleepMs(250);
+const startStageStart = now();
 try {
   runNode("ensure_hall_before_start.mjs");
 } catch {
@@ -155,8 +168,8 @@ try {
   process.exit(1);
 }
 const edgeStartProbe =
-  waitForOcrText("edge-left", "开始游戏", 5000, pollMs, edgeStartCrop) ||
-  waitForOcrText("edge-left", "开始", 3000, pollMs, edgeStartCrop);
+  waitForOcrText("edge-left", "开始游戏", 2500, pollMs, edgeStartCrop) ||
+  waitForOcrText("edge-left", "开始", 1500, pollMs, edgeStartCrop);
 let edgeStartResult = null;
 if (edgeStartProbe?.found) {
   try {
@@ -181,9 +194,12 @@ if (!edgeStarted) {
   console.error(JSON.stringify({ ok: false, reason: "edge_did_not_leave_hall_after_start" }, null, 2));
   process.exit(1);
 }
+timings.startStageMs = now() - startStageStart;
+timings.totalMs = now() - totalStart;
 
 console.log(JSON.stringify({
   ok: true,
+  timings,
   acceptResult,
   confirmResult,
   rightRoomReady,
