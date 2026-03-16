@@ -1,0 +1,10 @@
+{
+  "name": "zombie-dada",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser automation workflow for 向僵尸开炮 team runs on macOS.",
+  "dependencies": {
+    "pngjs": "^7.0.0"
+  }
+}

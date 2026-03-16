@@ -42,7 +42,22 @@
 
 ## 三、依赖安装
 
-当前仓库还没有整理成完整的 `package.json` 项目，所以依赖安装是“按实际需要安装”。
+当前仓库已经提供了初始化脚本，推荐直接执行：
+
+```bash
+cd /Users/renae/Workspace/ai
+./setup.sh
+```
+
+它会自动完成：
+
+- 安装 npm 依赖
+- 编译 `chrome_click`
+- 编译 `ocr_text`
+- 编译仓库里其他需要的 Swift 小工具
+- 检查 Edge / Chrome 是否存在
+
+如果你想手动了解每一步，下面是详细说明。
 
 ### 1. 安装 Node.js
 
@@ -65,12 +80,6 @@ npm -v
 
 ```bash
 cd /Users/renae/Workspace/ai
-npm install pngjs
-```
-
-如果后面仓库增加了 `package.json`，再改成常规的：
-
-```bash
 npm install
 ```
 
@@ -131,8 +140,7 @@ xcrun --sdk macosx swiftc /Users/renae/Workspace/ai/tools/chrome_move.swift -fra
 
 ```bash
 cd /Users/renae/Workspace/ai
-npm install pngjs
-xcrun --sdk macosx swiftc /Users/renae/Workspace/ai/tools/chrome_click.swift -framework AppKit -o /tmp/chrome_click
+./setup.sh
 ```
 
 然后确认已经在系统里给以下应用开启权限：
