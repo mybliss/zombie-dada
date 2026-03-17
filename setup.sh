@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TMP_DIR="/tmp"
+BIN_DIR="$ROOT_DIR/bin/macos-arm64"
 
 info() {
   printf '[setup] %s\n' "$1"
@@ -41,6 +42,33 @@ compile_swift_tool() {
   fi
 }
 
+install_prebuilt_or_compile() {
+  local tool_name="$1"
+  local source_file="$2"
+  shift 2
+  local output_file="$TMP_DIR/$tool_name"
+  local prebuilt_file="$BIN_DIR/$tool_name"
+
+  if [[ -f "$prebuilt_file" ]]; then
+    info "使用预编译工具 $tool_name"
+    cp "$prebuilt_file" "$output_file"
+    chmod +x "$output_file"
+    return 0
+  fi
+
+  compile_swift_tool "$source_file" "$output_file" "$@"
+}
+
+compile_optional_swift_tool() {
+  local source_file="$1"
+  local output_file="$2"
+  shift 2
+  info "编译可选工具 $(basename "$source_file") -> $output_file"
+  if ! xcrun swiftc "$source_file" "$@" -o "$output_file"; then
+    warn "可选工具编译失败：$(basename "$source_file")，已跳过，不影响主流程。"
+  fi
+}
+
 check_browser() {
   local app_name="$1"
   if ! osascript -e "id of application \"$app_name\"" >/dev/null 2>&1; then
@@ -64,16 +92,16 @@ info "安装 npm 依赖"
 cd "$ROOT_DIR"
 npm install
 
-info "编译本地 Swift 工具"
-compile_swift_tool "$ROOT_DIR/tools/chrome_click.swift" "$TMP_DIR/chrome_click" -framework AppKit
-compile_swift_tool "$ROOT_DIR/tools/ocr_text.swift" "$TMP_DIR/ocr_text" -framework Vision -framework AppKit
+info "准备本地 Swift 工具"
+install_prebuilt_or_compile "chrome_click" "$ROOT_DIR/tools/chrome_click.swift" -framework AppKit
+install_prebuilt_or_compile "ocr_text" "$ROOT_DIR/tools/ocr_text.swift" -framework Vision -framework AppKit
 
 if [[ -f "$ROOT_DIR/tools/chrome_move.swift" ]]; then
-  compile_swift_tool "$ROOT_DIR/tools/chrome_move.swift" "$TMP_DIR/chrome_move" -framework AppKit
+  compile_optional_swift_tool "$ROOT_DIR/tools/chrome_move.swift" "$TMP_DIR/chrome_move" -framework AppKit
 fi
 
 if [[ -f "$ROOT_DIR/tools/record_clicks.swift" ]]; then
-  compile_swift_tool "$ROOT_DIR/tools/record_clicks.swift" "$TMP_DIR/record_clicks" -framework AppKit
+  compile_optional_swift_tool "$ROOT_DIR/tools/record_clicks.swift" "$TMP_DIR/record_clicks" -framework AppKit
 fi
 
 cat <<'EOF'

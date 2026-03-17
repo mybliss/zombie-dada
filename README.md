@@ -52,9 +52,9 @@ cd /Users/renae/Workspace/ai
 它会自动完成：
 
 - 安装 npm 依赖
-- 编译 `chrome_click`
-- 编译 `ocr_text`
-- 编译仓库里其他需要的 Swift 小工具
+- 优先使用仓库内预编译的 `chrome_click`
+- 优先使用仓库内预编译的 `ocr_text`
+- 尝试编译仓库里其他可选 Swift 小工具
 - 检查 Edge / Chrome 是否存在
 
 如果你想手动了解每一步，下面是详细说明。
@@ -97,8 +97,18 @@ npm install
 - OCR 工具：`/tmp/ocr_text`
 - 鼠标点击工具：`/tmp/chrome_click`
 
-`ocr_text` 在部分脚本首次运行时会自动编译。  
-`chrome_click` 建议手动先编译一次：
+当前仓库已经内置了 `macOS arm64` 的预编译版本，`./setup.sh` 会优先直接复制它们到 `/tmp`。  
+
+只有在仓库里找不到预编译版本时，才会退回到本机编译。  
+
+主流程实际依赖的核心工具是：
+
+- `chrome_click`
+- `ocr_text`
+
+像 `chrome_move`、`record_clicks` 这类工具属于可选工具，初始化时即使编译失败，也不会阻断主流程。
+
+如果你想手动编译，命令如下：
 
 ```bash
 xcrun --sdk macosx swiftc /Users/renae/Workspace/ai/tools/chrome_click.swift -framework AppKit -o /tmp/chrome_click
@@ -190,6 +200,8 @@ xcrun swiftc --version
 ```
 
 当前仓库最新版本已经避免强制使用 `xcrun --sdk macosx swiftc`，如果你是较早 clone 下来的版本，请先拉最新代码再执行 `./setup.sh`。
+
+另外，当前仓库已经附带 `macOS arm64` 的预编译工具，所以很多机器上即使本机 Swift 编译链不稳定，也可以直接通过 `./setup.sh` 完成初始化。
 
 ## 六、窗口布局
 
