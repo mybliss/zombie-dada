@@ -13,6 +13,10 @@ fail() {
   exit 1
 }
 
+warn() {
+  printf '[setup] %s\n' "$1" >&2
+}
+
 require_cmd() {
   local cmd="$1"
   local hint="$2"
@@ -26,7 +30,15 @@ compile_swift_tool() {
   local output_file="$2"
   shift 2
   info "编译 $(basename "$source_file") -> $output_file"
-  xcrun --sdk macosx swiftc "$source_file" "$@" -o "$output_file"
+  if ! xcrun swiftc "$source_file" "$@" -o "$output_file"; then
+    warn "Swift 工具编译失败：$(basename "$source_file")"
+    warn "这通常是 Xcode Command Line Tools / SDK / Swift 编译器版本不匹配。"
+    warn "建议处理方式："
+    warn "1. 执行 xcode-select --install 更新 Command Line Tools"
+    warn "2. 如果已安装完整 Xcode，执行 sudo xcode-select -s /Applications/Xcode.app/Contents/Developer"
+    warn "3. 重新打开终端后再次运行 ./setup.sh"
+    fail "无法完成 Swift 工具编译。"
+  fi
 }
 
 check_browser() {
@@ -42,6 +54,8 @@ require_cmd "node" "请先安装 Node.js。"
 require_cmd "npm" "npm 会随 Node.js 一起安装。"
 require_cmd "xcrun" "请先安装 Xcode Command Line Tools。"
 require_cmd "osascript" "当前脚本只支持 macOS。"
+
+info "Swift 版本：$(xcrun swiftc --version | head -n 1)"
 
 check_browser "Microsoft Edge"
 check_browser "Google Chrome"

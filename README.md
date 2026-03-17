@@ -154,6 +154,43 @@ cd /Users/renae/Workspace/ai
 - 辅助功能
 - 屏幕录制
 
+### 如果 `./setup.sh` 在 Swift 编译时报错
+
+如果你看到的是一大段来自 `Swift.swiftmodule` 或 `swiftinterface` 的报错，通常不是脚本本身问题，而是：
+
+- `Swift 编译器版本过旧`
+- 或 `Xcode Command Line Tools / SDK` 不匹配
+
+优先按下面顺序处理：
+
+```bash
+xcode-select --install
+```
+
+如果你已经安装了完整 Xcode，再执行：
+
+```bash
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+```
+
+然后：
+
+1. 关闭当前终端
+2. 重新打开终端
+3. 再次运行：
+
+```bash
+./setup.sh
+```
+
+你也可以先检查当前 Swift 版本：
+
+```bash
+xcrun swiftc --version
+```
+
+当前仓库最新版本已经避免强制使用 `xcrun --sdk macosx swiftc`，如果你是较早 clone 下来的版本，请先拉最新代码再执行 `./setup.sh`。
+
 ## 六、窗口布局
 
 当前脚本固定使用左右双窗口：
