@@ -20,22 +20,6 @@ function sleepMs(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
-function waitForAction(action, timeoutMs, pollMs) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const result = JSON.parse(runNode("game_actions.mjs", [action, "--dry-run"]));
-      if (result.matched) {
-        return result;
-      }
-    } catch {
-      // keep polling
-    }
-    sleepMs(pollMs);
-  }
-  return null;
-}
-
 function waitForOcrText(browser, text, timeoutMs, pollMs, cropArgs = []) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
@@ -81,8 +65,12 @@ function now() {
 }
 
 const friendName = process.argv[2] && !/^\d+$/.test(process.argv[2]) ? process.argv[2] : "";
-const timeoutArgIndex = friendName ? 3 : 2;
-const pollArgIndex = friendName ? 4 : 3;
+if (!friendName) {
+  console.error("usage: node tools/send_and_accept.mjs <friend_name> [accept_timeout_ms] [poll_ms]");
+  process.exit(2);
+}
+const timeoutArgIndex = 3;
+const pollArgIndex = 4;
 const timeoutMs = Number.parseInt(process.argv[timeoutArgIndex] || "15000", 10);
 const pollMs = Number.parseInt(process.argv[pollArgIndex] || "200", 10);
 const rightInviteCrop = ["--x", "500", "--y", "850", "--w", "1100", "--h", "1050"];
@@ -100,11 +88,7 @@ try {
   console.error(JSON.stringify({ ok: false, reason: "edge_left_hall_not_ready_before_invite" }, null, 2));
   process.exit(1);
 }
-if (friendName) {
-  runNode("invite_friend_by_name.mjs", [friendName]);
-} else {
-  runNode("game_flow.mjs", ["invite_first"]);
-}
+runNode("invite_friend_by_name.mjs", [friendName]);
 timings.inviteStageMs = now() - inviteStageStart;
 
 sh(path.join(repoRoot, "tools", "focus_game_window.sh"), ["chrome-right"]);

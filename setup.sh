@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TMP_DIR="/tmp"
 BIN_DIR="$ROOT_DIR/bin/macos-arm64"
+COMPILE_OPTIONAL_SWIFT_TOOLS="${COMPILE_OPTIONAL_SWIFT_TOOLS:-0}"
 
 info() {
   printf '[setup] %s\n' "$1"
@@ -95,14 +96,6 @@ npm install
 info "准备本地 Swift 工具"
 install_prebuilt_or_compile "chrome_click" "$ROOT_DIR/tools/chrome_click.swift" -framework AppKit
 install_prebuilt_or_compile "ocr_text" "$ROOT_DIR/tools/ocr_text.swift" -framework Vision -framework AppKit
-
-if [[ -f "$ROOT_DIR/tools/chrome_move.swift" ]]; then
-  compile_optional_swift_tool "$ROOT_DIR/tools/chrome_move.swift" "$TMP_DIR/chrome_move" -framework AppKit
-fi
-
-if [[ -f "$ROOT_DIR/tools/record_clicks.swift" ]]; then
-  compile_optional_swift_tool "$ROOT_DIR/tools/record_clicks.swift" "$TMP_DIR/record_clicks" -framework AppKit
-fi
 
 cat <<'EOF'
 

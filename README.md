@@ -27,7 +27,6 @@
 - [send_and_accept.mjs](/Users/renae/Workspace/ai/tools/send_and_accept.mjs)
 - [repeat_send_accept_start.mjs](/Users/renae/Workspace/ai/tools/repeat_send_accept_start.mjs)
 - [invite_friend_by_name.mjs](/Users/renae/Workspace/ai/tools/invite_friend_by_name.mjs)
-- [monitor_return_and_click.mjs](/Users/renae/Workspace/ai/tools/monitor_return_and_click.mjs)
 
 ## 二、运行环境
 
@@ -54,7 +53,6 @@ cd /Users/renae/Workspace/ai
 - 安装 npm 依赖
 - 优先使用仓库内预编译的 `chrome_click`
 - 优先使用仓库内预编译的 `ocr_text`
-- 尝试编译仓库里其他可选 Swift 小工具
 - 检查 Edge / Chrome 是否存在
 
 如果你想手动了解每一步，下面是详细说明。
@@ -106,31 +104,11 @@ npm install
 - `chrome_click`
 - `ocr_text`
 
-像 `chrome_move`、`record_clicks` 这类工具属于可选工具，初始化时即使编译失败，也不会阻断主流程。
-
-如果你想手动编译，命令如下：
+如果你想手动编译核心工具，命令如下：
 
 ```bash
 xcrun --sdk macosx swiftc /Users/renae/Workspace/ai/tools/chrome_click.swift -framework AppKit -o /tmp/chrome_click
 ```
-
-如果你还需要鼠标移动工具，也可以编译：
-
-```bash
-xcrun --sdk macosx swiftc /Users/renae/Workspace/ai/tools/chrome_move.swift -framework AppKit -o /tmp/chrome_move
-```
-
-### 5. 可选：PaddleOCR 对比环境
-
-仓库里保留了 PaddleOCR 对比脚本，但主流程当前并不依赖它。
-
-如果你想自己继续测试 PaddleOCR，可以参考当前目录：
-
-- [tools/ocr_text_paddle.py](/Users/renae/Workspace/ai/tools/ocr_text_paddle.py)
-- `.venv-paddle`
-- `.paddle-models`
-
-这部分不是主流程必需项，可以先跳过。
 
 ## 四、前置条件
 
@@ -346,20 +324,6 @@ node /Users/renae/Workspace/ai/tools/repeat_send_accept_start.mjs 'Yuxi' 50
 
 - 执行多轮循环
 - 自动处理战斗结束后的 `返回`
-
-### [monitor_return_and_click.mjs](/Users/renae/Workspace/ai/tools/monitor_return_and_click.mjs)
-
-用途：
-
-- 单独监控某一侧是否出现 `返回`
-- 目前主流程已经不再依赖它做双边统一回收，但它仍可用于单侧调试
-
-示例：
-
-```bash
-node /Users/renae/Workspace/ai/tools/monitor_return_and_click.mjs edge-left
-node /Users/renae/Workspace/ai/tools/monitor_return_and_click.mjs chrome-right
-```
 
 ### [find_text_in_browser.mjs](/Users/renae/Workspace/ai/tools/find_text_in_browser.mjs)
 
