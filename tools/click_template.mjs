@@ -1,6 +1,10 @@
 import { execFileSync } from "child_process";
 import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { loadPng, matchTemplate, parseArgs } from "./template_match.mjs";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const args = parseArgs(process.argv);
 if (!args.template) {
@@ -51,7 +55,7 @@ function getBounds() {
 
 const { left, top, right, bottom, width: windowWidth, height: windowHeight } = getBounds();
 const screenshotPath = `/tmp/${browser}_template_search.png`;
-execFileSync("/Users/renae/Workspace/ai/tools/capture_browser_window.sh", [browser, screenshotPath], {
+execFileSync(path.join(__dirname, "capture_browser_window.sh"), [browser, screenshotPath], {
   encoding: "utf8",
 });
 

@@ -1,6 +1,7 @@
 #!/bin/zsh
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 target="${1:-chrome-left}"
 outfile="${2:-/tmp/browser_front_window.png}"
 
@@ -26,7 +27,7 @@ case "$target" in
 esac
 
 osascript -e 'tell application "Codex" to hide' >/dev/null 2>&1 || true
-/Users/renae/Workspace/ai/tools/focus_game_window.sh "$target" >/dev/null
+"$SCRIPT_DIR/focus_game_window.sh" "$target" >/dev/null
 sleep 0.25
 
 screencapture -R"${left},${stop},${window_width},${screen_height}" "$outfile"

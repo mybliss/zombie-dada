@@ -1,42 +1,5 @@
-import { execFileSync } from "child_process";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, "..");
-
-function runNode(script, args = []) {
-  return execFileSync("node", [path.join(repoRoot, "tools", script), ...args], {
-    cwd: repoRoot,
-    encoding: "utf8",
-  }).trim();
-}
-
-function sleepMs(ms) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-}
-
-function tryFindReturn(browser) {
-  const cropArgs = browser === "chrome-right"
-    ? ["--x", "0", "--y", "1200", "--w", "1000", "--h", "900"]
-    : ["--x", "0", "--y", "1200", "--w", "1000", "--h", "900"];
-  try {
-    return JSON.parse(runNode("find_text_in_browser.mjs", [browser, "返回", ...cropArgs]));
-  } catch {
-    return null;
-  }
-}
-
-function tryClickReturn(browser) {
-  const cropArgs = browser === "chrome-right"
-    ? ["--x", "0", "--y", "1200", "--w", "1000", "--h", "900"]
-    : ["--x", "0", "--y", "1200", "--w", "1000", "--h", "900"];
-  try {
-    return JSON.parse(runNode("click_text_in_browser.mjs", [browser, "返回", ...cropArgs]));
-  } catch {
-    return null;
-  }
-}
+import { clickReturn, findReturn } from "./lib/browser_flow.mjs";
+import { parseJson, runNodeTool, sleepMs } from "./lib/runtime.mjs";
 
 function waitForBothReturns(timeoutMs, pollMs, initialDelayMs) {
   sleepMs(initialDelayMs);
@@ -48,16 +11,16 @@ function waitForBothReturns(timeoutMs, pollMs, initialDelayMs) {
 
   while (Date.now() - start < timeoutMs) {
     if (!state.edgeLeft) {
-      const found = tryFindReturn("edge-left");
+      const found = findReturn("edge-left");
       if (found?.found) {
-        state.edgeLeft = tryClickReturn("edge-left");
+        state.edgeLeft = clickReturn("edge-left");
       }
     }
 
     if (!state.chromeRight) {
-      const found = tryFindReturn("chrome-right");
+      const found = findReturn("chrome-right");
       if (found?.found) {
-        state.chromeRight = tryClickReturn("chrome-right");
+        state.chromeRight = clickReturn("chrome-right");
       }
     }
 
@@ -96,7 +59,7 @@ const results = [];
 
 for (let round = 1; round <= rounds; round += 1) {
   const cycle = { round };
-  cycle.chain = JSON.parse(runNode("send_and_accept.mjs", [friendName, "15000", "200"]));
+  cycle.chain = parseJson(runNodeTool("send_and_accept.mjs", [friendName, "15000", "200"]));
 
   // Give the game a brief moment after A starts, then recover both sides together.
   sleepMs(1000);

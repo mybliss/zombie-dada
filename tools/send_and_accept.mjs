@@ -1,68 +1,15 @@
-import { execFileSync } from "child_process";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, "..");
-
-function sh(script, args = []) {
-  return execFileSync(script, args, { cwd: repoRoot, encoding: "utf8" }).trim();
-}
-
-function runNode(script, args = []) {
-  return execFileSync("node", [path.join(repoRoot, "tools", script), ...args], {
-    cwd: repoRoot,
-    encoding: "utf8",
-  }).trim();
-}
-
-function sleepMs(ms) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-}
-
-function waitForOcrText(browser, text, timeoutMs, pollMs, cropArgs = []) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    try {
-      const result = JSON.parse(runNode("find_text_in_browser.mjs", [browser, text, ...cropArgs]));
-      if (result.found) {
-        return result;
-      }
-    } catch {
-      // keep polling
-    }
-    sleepMs(pollMs);
-  }
-  return null;
-}
-
-function waitForText(browser, text, timeoutMs, pollMs) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    const result = JSON.parse(runNode("find_text_in_browser.mjs", [browser, text]));
-    if (result.found) {
-      return result;
-    }
-    sleepMs(pollMs);
-  }
-  return null;
-}
-
-function waitForTextToDisappear(browser, text, timeoutMs, pollMs) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    const result = JSON.parse(runNode("find_text_in_browser.mjs", [browser, text]));
-    if (!result.found) {
-      return { ok: true, disappeared: true };
-    }
-    sleepMs(pollMs);
-  }
-  return null;
-}
-
-function now() {
-  return Date.now();
-}
+import {
+  clickText,
+  ensureChromeHall,
+  ensureEdgeHall,
+  ensureStartHall,
+  focusWindow,
+  inviteFriendByName,
+  waitForText,
+  waitForTextToDisappear,
+} from "./lib/browser_flow.mjs";
+import { BROWSERS, CROPS, TIMINGS } from "./lib/config.mjs";
+import { now, sleepMs } from "./lib/runtime.mjs";
 
 const friendName = process.argv[2] && !/^\d+$/.test(process.argv[2]) ? process.argv[2] : "";
 if (!friendName) {
@@ -71,41 +18,38 @@ if (!friendName) {
 }
 const timeoutArgIndex = 3;
 const pollArgIndex = 4;
-const timeoutMs = Number.parseInt(process.argv[timeoutArgIndex] || "15000", 10);
-const pollMs = Number.parseInt(process.argv[pollArgIndex] || "200", 10);
-const rightInviteCrop = ["--x", "500", "--y", "850", "--w", "1100", "--h", "1050"];
-const rightConfirmCrop = ["--x", "450", "--y", "650", "--w", "1300", "--h", "1100"];
-const edgeStartCrop = ["--x", "450", "--y", "1700", "--w", "650", "--h", "420"];
+const timeoutMs = Number.parseInt(process.argv[timeoutArgIndex] || String(TIMINGS.acceptInviteTimeoutMs), 10);
+const pollMs = Number.parseInt(process.argv[pollArgIndex] || String(TIMINGS.acceptInvitePollMs), 10);
 const timings = {};
 const totalStart = now();
 
-sh(path.join(repoRoot, "tools", "focus_game_window.sh"), ["edge-left"]);
-sleepMs(250);
+focusWindow(BROWSERS.accountA);
+sleepMs(TIMINGS.focusSettleMs);
 const inviteStageStart = now();
 try {
-  runNode("ensure_edge_left_hall.mjs");
+  ensureEdgeHall();
 } catch {
   console.error(JSON.stringify({ ok: false, reason: "edge_left_hall_not_ready_before_invite" }, null, 2));
   process.exit(1);
 }
-runNode("invite_friend_by_name.mjs", [friendName]);
+inviteFriendByName(friendName);
 timings.inviteStageMs = now() - inviteStageStart;
 
-sh(path.join(repoRoot, "tools", "focus_game_window.sh"), ["chrome-right"]);
-sleepMs(250);
+focusWindow(BROWSERS.accountB);
+sleepMs(TIMINGS.focusSettleMs);
 const acceptStageStart = now();
 try {
-  runNode("ensure_chrome_right_hall.mjs");
+  ensureChromeHall();
 } catch {
   console.error(JSON.stringify({ ok: false, reason: "chrome_right_hall_not_ready_before_accept" }, null, 2));
   process.exit(1);
 }
 
-const acceptProbe = waitForOcrText("chrome-right", "副本邀请", timeoutMs, pollMs, rightInviteCrop);
+const acceptProbe = waitForText(BROWSERS.accountB, "副本邀请", timeoutMs, pollMs, CROPS.rightInvite);
 let acceptResult = null;
 if (acceptProbe?.found) {
   try {
-    acceptResult = JSON.parse(runNode("click_text_in_browser.mjs", ["chrome-right", "副本邀请", ...rightInviteCrop]));
+    acceptResult = clickText(BROWSERS.accountB, "副本邀请", CROPS.rightInvite);
   } catch {
     acceptResult = null;
   }
@@ -116,11 +60,11 @@ if (!acceptResult?.ok) {
   process.exit(1);
 }
 
-const confirmProbe = waitForOcrText("chrome-right", "接受", 5000, pollMs, rightConfirmCrop);
+const confirmProbe = waitForText(BROWSERS.accountB, "接受", TIMINGS.acceptConfirmTimeoutMs, pollMs, CROPS.rightConfirm);
 let confirmResult = null;
 if (confirmProbe?.found) {
   try {
-    confirmResult = JSON.parse(runNode("click_text_in_browser.mjs", ["chrome-right", "接受", ...rightConfirmCrop]));
+    confirmResult = clickText(BROWSERS.accountB, "接受", CROPS.rightConfirm);
   } catch {
     confirmResult = null;
   }
@@ -130,37 +74,37 @@ if (!confirmResult?.ok) {
   process.exit(1);
 }
 
-sleepMs(500);
+sleepMs(TIMINGS.postAcceptSettleMs);
 const rightRoomReady =
-  waitForOcrText("chrome-right", "等待开始", 1800, pollMs) ||
-  waitForOcrText("chrome-right", "离开", 1200, pollMs) ||
-  waitForOcrText("chrome-right", "催促", 1200, pollMs);
+  waitForText(BROWSERS.accountB, "等待开始", TIMINGS.roomWaitLongMs, pollMs) ||
+  waitForText(BROWSERS.accountB, "离开", TIMINGS.roomWaitShortMs, pollMs) ||
+  waitForText(BROWSERS.accountB, "催促", TIMINGS.roomWaitShortMs, pollMs);
 if (!rightRoomReady) {
   console.error(JSON.stringify({ ok: false, reason: "right_chrome_not_in_room_after_accept" }, null, 2));
   process.exit(1);
 }
 timings.acceptStageMs = now() - acceptStageStart;
 
-sleepMs(800);
-sh(path.join(repoRoot, "tools", "focus_game_window.sh"), ["edge-left"]);
-sleepMs(250);
+sleepMs(TIMINGS.beforeStartSettleMs);
+focusWindow(BROWSERS.accountA);
+sleepMs(TIMINGS.focusSettleMs);
 const startStageStart = now();
 try {
-  runNode("ensure_hall_before_start.mjs");
+  ensureStartHall();
 } catch {
   console.error(JSON.stringify({ ok: false, reason: "edge_hall_not_ready_before_start" }, null, 2));
   process.exit(1);
 }
 const edgeStartProbe =
-  waitForOcrText("edge-left", "开始游戏", 2500, pollMs, edgeStartCrop) ||
-  waitForOcrText("edge-left", "开始", 1500, pollMs, edgeStartCrop);
+  waitForText(BROWSERS.accountA, "开始游戏", 2500, pollMs, CROPS.edgeStart) ||
+  waitForText(BROWSERS.accountA, "开始", 1500, pollMs, CROPS.edgeStart);
 let edgeStartResult = null;
 if (edgeStartProbe?.found) {
   try {
-    edgeStartResult = JSON.parse(runNode("click_text_in_browser.mjs", ["edge-left", "开始游戏", ...edgeStartCrop]));
+    edgeStartResult = clickText(BROWSERS.accountA, "开始游戏", CROPS.edgeStart);
   } catch {
     try {
-      edgeStartResult = JSON.parse(runNode("click_text_in_browser.mjs", ["edge-left", "开始", ...edgeStartCrop]));
+      edgeStartResult = clickText(BROWSERS.accountA, "开始", CROPS.edgeStart);
     } catch {
       edgeStartResult = null;
     }
@@ -172,8 +116,8 @@ if (!edgeStartResult?.ok) {
 }
 
 const edgeStarted =
-  waitForTextToDisappear("edge-left", "开始游戏", 8000, pollMs) ||
-  waitForTextToDisappear("edge-left", "开始", 8000, pollMs);
+  waitForTextToDisappear(BROWSERS.accountA, "开始游戏", 8000, pollMs) ||
+  waitForTextToDisappear(BROWSERS.accountA, "开始", 8000, pollMs);
 if (!edgeStarted) {
   console.error(JSON.stringify({ ok: false, reason: "edge_did_not_leave_hall_after_start" }, null, 2));
   process.exit(1);

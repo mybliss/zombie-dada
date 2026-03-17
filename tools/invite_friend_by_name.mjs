@@ -2,6 +2,9 @@ import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { BROWSERS, CROPS, INVITE_FLOW, TIMINGS } from "./lib/config.mjs";
+import { normalizeText, runCommand, runNodeTool, runTool, sleepMs } from "./lib/runtime.mjs";
+import { clickImagePoint, getWindowBounds } from "./lib/screen.mjs";
 import { loadPng, matchTemplate } from "./template_match.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,14 +23,6 @@ const cropPath = "/tmp/invite_friend_by_name_crop.png";
 const ocrBin = "/tmp/ocr_text";
 const a3TemplatePath = path.join(templatesDir, "a3_online_friend.png");
 
-function sleepMs(ms) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
-}
-
-function sh(cmd, args = []) {
-  return execFileSync(cmd, args, { cwd: repoRoot, encoding: "utf8" }).trim();
-}
-
 function ensureOcrTool() {
   if (fs.existsSync(ocrBin)) return;
   execFileSync("xcrun", [
@@ -43,9 +38,8 @@ function ensureOcrTool() {
     ocrBin,
   ], { cwd: repoRoot, encoding: "utf8" });
 }
-
-function normalizeText(value) {
-  return value.replace(/\s+/g, "").replace(/[()（）]/g, "").replace(/服/g, "").toLowerCase();
+function normalizeFriendText(value) {
+  return normalizeText(value).replace(/服/g, "");
 }
 
 function clickScreenPoint(screenX, screenY) {
@@ -59,46 +53,27 @@ function clickScreenPoint(screenX, screenY) {
 }
 
 function getChromeBounds() {
-  const raw = sh("osascript", ["-e", 'tell application "Finder" to get bounds of window of desktop']);
-  const [sleft, stop, sright, sbottom] = raw.split(/,\s*/).map((value) => Number.parseInt(value, 10));
-  const width = Math.trunc((sright - sleft) / 2);
-  return { left: sleft, top: stop, right: sleft + width, bottom: sbottom, width, height: sbottom - stop };
+  return getWindowBounds(BROWSERS.accountA);
 }
 
 function captureChrome() {
-  sh(path.join(repoRoot, "tools", "focus_game_window.sh"), ["edge-left"]);
-  sleepMs(250);
-  sh(path.join(repoRoot, "tools", "capture_browser_window.sh"), ["edge-left", screenshotPath]);
+  runTool("focus_game_window.sh", [BROWSERS.accountA]);
+  sleepMs(TIMINGS.focusSettleMs);
+  runTool("capture_browser_window.sh", [BROWSERS.accountA, screenshotPath]);
   return loadPng(screenshotPath);
 }
 
 function runOcr(imagePath) {
   ensureOcrTool();
-  return JSON.parse(sh(ocrBin, [imagePath]));
+  return JSON.parse(runCommand(ocrBin, [imagePath]));
 }
 
-const listRegion = {
-  x: 260,
-  y: 330,
-  w: 1250,
-  h: 1220,
-};
-const popupTabsRegion = {
-  x: 250,
-  y: 1780,
-  w: 800,
-  h: 260,
-};
-const hallBottomRegion = {
-  x: 240,
-  y: 1500,
-  w: 1100,
-  h: 520,
-};
+const listRegion = CROPS.inviteListRegion;
+const popupTabsRegion = CROPS.invitePopupTabsRegion;
+const hallBottomRegion = CROPS.hallBottomInviteRegion;
 
 function cropListRegion() {
-  sh("node", [
-    path.join(repoRoot, "tools", "crop_png.mjs"),
+  runNodeTool("crop_png.mjs", [
     "--image",
     screenshotPath,
     "--x",
@@ -115,8 +90,7 @@ function cropListRegion() {
 }
 
 function cropPopupTabsRegion() {
-  sh("node", [
-    path.join(repoRoot, "tools", "crop_png.mjs"),
+  runNodeTool("crop_png.mjs", [
     "--image",
     screenshotPath,
     "--x",
@@ -133,8 +107,7 @@ function cropPopupTabsRegion() {
 }
 
 function cropHallBottomRegion() {
-  sh("node", [
-    path.join(repoRoot, "tools", "crop_png.mjs"),
+  runNodeTool("crop_png.mjs", [
     "--image",
     screenshotPath,
     "--x",
@@ -151,10 +124,10 @@ function cropHallBottomRegion() {
 }
 
 function findBestTextLine(lines, name) {
-  const normalizedTarget = normalizeText(name);
+  const normalizedTarget = normalizeFriendText(name);
   let best = null;
   for (const line of lines) {
-    const normalizedLine = normalizeText(line.text);
+    const normalizedLine = normalizeFriendText(line.text);
     if (!normalizedLine) continue;
     const contains =
       normalizedLine.includes(normalizedTarget) || normalizedTarget.includes(normalizedLine);
@@ -172,15 +145,7 @@ function tryMatch(image, templatePath, options) {
 }
 
 function popupInviteButtonsMatch(image) {
-  return tryMatch(image, a3TemplatePath, {
-    threshold: "0.90",
-    step: "1",
-    sample: "2",
-    "region-x": "650",
-    "region-y": "300",
-    "region-w": "650",
-    "region-h": "1200",
-  });
+  return tryMatch(image, a3TemplatePath, INVITE_FLOW.popupMatch);
 }
 
 function findHallInviteText() {
@@ -230,7 +195,7 @@ function clickFriendsTab(bounds, image) {
   if (popupFriendsTab) {
     return clickFromCrop(bounds, image, popupTabsRegion, popupFriendsTab);
   }
-  return clickFromMatch(bounds, image, { centerX: 758, centerY: 1920 });
+  return clickFromMatch(bounds, image, INVITE_FLOW.popupFriendsFallbackPoint);
 }
 
 function ensureFriendsList() {
@@ -243,9 +208,9 @@ function ensureFriendsList() {
   const popupMatch = popupInviteButtonsMatch(image);
   if (popupMatch.matched) {
     const bounds = getChromeBounds();
-    for (let i = 0; i < 4; i += 1) {
+    for (let i = 0; i < INVITE_FLOW.popupFriendsRetryCount; i += 1) {
       clickFriendsTab(bounds, image);
-      sleepMs(300);
+      sleepMs(TIMINGS.inviteFriendsTabSettleMs);
       image = captureChrome();
       const afterClick = listHasTargetName(image, targetName);
       if (afterClick.bestLine) {
@@ -259,22 +224,22 @@ function ensureFriendsList() {
   const hallInvite = findHallInviteText();
   if (hallInvite.inviteLine) {
     const bounds = getChromeBounds();
-    const candidates = [
-      hallInvite.inviteLine,
-      { ...hallInvite.inviteLine, centerX: hallInvite.inviteLine.centerX - 80, centerY: hallInvite.inviteLine.centerY + 4 },
-      { ...hallInvite.inviteLine, centerX: hallInvite.inviteLine.centerX - 130, centerY: hallInvite.inviteLine.centerY + 8 },
-    ];
+    const candidates = INVITE_FLOW.hallInviteCandidates.map(({ deltaX, deltaY }) => ({
+      ...hallInvite.inviteLine,
+      centerX: hallInvite.inviteLine.centerX + deltaX,
+      centerY: hallInvite.inviteLine.centerY + deltaY,
+    }));
     for (const candidate of candidates) {
       clickFromCrop(bounds, image, hallBottomRegion, candidate);
-      sleepMs(180);
+      sleepMs(TIMINGS.invitePopupOpenSettleMs);
       image = captureChrome();
       if (popupInviteButtonsMatch(image).matched) break;
     }
 
     if (popupInviteButtonsMatch(image).matched || hasInvitePopup()) {
-      for (let i = 0; i < 4; i += 1) {
+      for (let i = 0; i < INVITE_FLOW.popupFriendsRetryCount; i += 1) {
         clickFriendsTab(bounds, image);
-        sleepMs(180);
+        sleepMs(TIMINGS.invitePopupOpenSettleMs);
         image = captureChrome();
         const afterClick = listHasTargetName(image, targetName);
         if (afterClick.bestLine) {
@@ -299,15 +264,15 @@ function clickFromMatch(bounds, image, match) {
 
 function matchInviteButtonNearY(image, centerY) {
   const template = loadPng(a3TemplatePath);
-  const minY = Math.max(0, Math.round(centerY - 170));
-  const maxY = Math.min(image.height - template.height, Math.round(centerY + 170));
+  const minY = Math.max(0, Math.round(centerY - INVITE_FLOW.nearbyInviteButton.deltaY));
+  const maxY = Math.min(image.height - template.height, Math.round(centerY + INVITE_FLOW.nearbyInviteButton.deltaY));
   return matchTemplate(image, template, {
-    threshold: "0.80",
-    step: "1",
-    sample: "2",
-    "region-x": "700",
+    threshold: INVITE_FLOW.nearbyInviteButton.threshold,
+    step: INVITE_FLOW.nearbyInviteButton.step,
+    sample: INVITE_FLOW.nearbyInviteButton.sample,
+    "region-x": String(INVITE_FLOW.nearbyInviteButton.regionX),
     "region-y": String(minY),
-    "region-w": "520",
+    "region-w": String(INVITE_FLOW.nearbyInviteButton.regionW),
     "region-h": String(Math.max(template.height + 20, maxY - minY + template.height)),
   });
 }

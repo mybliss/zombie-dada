@@ -4,8 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TMP_DIR="/tmp"
 BIN_DIR="$ROOT_DIR/bin/macos-arm64"
-COMPILE_OPTIONAL_SWIFT_TOOLS="${COMPILE_OPTIONAL_SWIFT_TOOLS:-0}"
-
 info() {
   printf '[setup] %s\n' "$1"
 }
@@ -60,16 +58,6 @@ install_prebuilt_or_compile() {
   compile_swift_tool "$source_file" "$output_file" "$@"
 }
 
-compile_optional_swift_tool() {
-  local source_file="$1"
-  local output_file="$2"
-  shift 2
-  info "编译可选工具 $(basename "$source_file") -> $output_file"
-  if ! xcrun swiftc "$source_file" "$@" -o "$output_file"; then
-    warn "可选工具编译失败：$(basename "$source_file")，已跳过，不影响主流程。"
-  fi
-}
-
 check_browser() {
   local app_name="$1"
   if ! osascript -e "id of application \"$app_name\"" >/dev/null 2>&1; then
@@ -108,6 +96,6 @@ cat <<'EOF'
 推荐下一步：
 1. ./tools/start_game_windows.sh
 2. 登录 Edge 和 Chrome 两个账号
-3. node /Users/renae/Workspace/ai/tools/send_and_accept.mjs 'Yuxi'
+3. node ./tools/send_and_accept.mjs 'Yuxi'
 
 EOF
