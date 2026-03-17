@@ -10,7 +10,7 @@ import {
 } from "../lib/browser_flow.mjs";
 import { BROWSERS, CROPS, TIMINGS } from "../lib/config.mjs";
 import { logStepError, logStepOk, logStepStart } from "../lib/logger.mjs";
-import { now, sleepMs } from "../lib/runtime.mjs";
+import { formatMarkedResult, now, sleepMs } from "../lib/runtime.mjs";
 
 const friendName = process.argv[2] && !/^\d+$/.test(process.argv[2]) ? process.argv[2] : "";
 if (!friendName) {
@@ -145,7 +145,7 @@ timings.totalMs = now() - totalStart;
 logStepOk("start_confirm", { durationMs: timings.startStageMs, edgeStarted });
 logStepOk("send_and_accept", { durationMs: timings.totalMs, friendName, timings });
 
-console.log(JSON.stringify({
+console.log(formatMarkedResult({
   ok: true,
   timings,
   acceptResult,
@@ -153,4 +153,4 @@ console.log(JSON.stringify({
   rightRoomReady,
   edgeStartResult,
   edgeStarted,
-}, null, 2));
+}));

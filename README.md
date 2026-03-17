@@ -18,11 +18,18 @@
 
 日志是按 JSON 行打印的，便于你直接看当前卡在哪一步，或在外部重定向保存。
 
+OCR 过程中产生的 `/tmp/*.png` 临时截图默认会自动清理。  
+如果你需要保留调试图片，可以临时这样运行：
+
+```bash
+KEEP_DEBUG_IMAGES=1 node ./run.mjs 'Yuxi'
+```
+
 仓库根目录现在只需要记两个主入口：
 
 - `./start_windows.sh`
   - 启动左右浏览器窗口
-- `node ./run.mjs <friend_name> [once|loop]`
+- `node ./run.mjs <friend_name> [loop|once]`
   - 启动主流程
 
 ## 一、目录结构
@@ -241,13 +248,20 @@ xcrun swiftc --version
 - A 账号登录左边 Edge
 - B 账号登录右边 Chrome
 
-### 2. 单次执行一轮
+### 2. 默认执行循环
 
 ```bash
 node ./run.mjs 'Yuxi'
 ```
 
-这里的 `Yuxi` 是要邀请的好友名字。
+这里的 `Yuxi` 是要邀请的好友名字。  
+不写模式时，默认会一直循环。
+
+### 3. 单次执行一轮
+
+```bash
+node ./run.mjs 'Yuxi' once
+```
 
 单次流程会执行：
 
@@ -255,7 +269,7 @@ node ./run.mjs 'Yuxi'
 2. B 接受邀请
 3. A 点击 `开始游戏`
 
-### 3. 连续循环执行
+### 4. 连续循环执行
 
 跑固定轮数：
 

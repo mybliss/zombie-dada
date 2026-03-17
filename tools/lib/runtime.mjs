@@ -46,3 +46,20 @@ export function tryParseJson(value) {
     return null;
   }
 }
+
+export const RESULT_MARKER = "__CODEX_RESULT__";
+
+export function formatMarkedResult(payload) {
+  return `${RESULT_MARKER}${JSON.stringify(payload)}`;
+}
+
+export function parseMarkedResult(output) {
+  const lines = output.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    const line = lines[i];
+    if (line.startsWith(RESULT_MARKER)) {
+      return JSON.parse(line.slice(RESULT_MARKER.length));
+    }
+  }
+  throw new Error("missing_marked_result");
+}

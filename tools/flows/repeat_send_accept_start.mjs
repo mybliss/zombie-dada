@@ -1,7 +1,7 @@
 import { clickReturn, findReturn } from "../lib/browser_flow.mjs";
 import { TIMINGS } from "../lib/config.mjs";
 import { logRound, logStepError, logStepOk, logStepStart } from "../lib/logger.mjs";
-import { parseJson, runNodeTool, sleepMs } from "../lib/runtime.mjs";
+import { formatMarkedResult, parseMarkedResult, runNodeTool, sleepMs, tryParseJson } from "../lib/runtime.mjs";
 
 function waitForBothReturns(timeoutMs, pollMs, initialDelayMs) {
   sleepMs(initialDelayMs);
@@ -64,15 +64,17 @@ for (let round = 1; round <= rounds; round += 1) {
   logRound(round, "start", { friendName });
   logStepStart("round_send_and_accept", { round, friendName });
   try {
-    cycle.chain = parseJson(runNodeTool("flows/send_and_accept.mjs", [
+    cycle.chain = parseMarkedResult(runNodeTool("flows/send_and_accept.mjs", [
       friendName,
       String(TIMINGS.acceptInviteTimeoutMs),
       String(TIMINGS.acceptInvitePollMs),
     ]));
     logStepOk("round_send_and_accept", { round, timings: cycle.chain.timings });
   } catch (error) {
-    logStepError("round_send_and_accept", { round, error: error.message });
-    throw error;
+    const payload = tryParseJson(error.stderr?.trim?.() || "") || { ok: false, reason: "round_send_and_accept_failed" };
+    logStepError("round_send_and_accept", { round, error: payload.reason ?? error.message });
+    console.error(JSON.stringify(payload, null, 2));
+    process.exit(1);
   }
 
   // Give the game a brief moment after A starts, then recover both sides together.
@@ -82,5 +84,5 @@ for (let round = 1; round <= rounds; round += 1) {
   logStepOk("round_wait_for_returns", { round, returnWatch: cycle.returnWatch });
   results.push(cycle);
   logRound(round, "completed", { timings: cycle.chain.timings });
-  console.log(JSON.stringify(cycle, null, 2));
+  console.log(formatMarkedResult(cycle));
 }

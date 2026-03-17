@@ -3,6 +3,7 @@ import { normalizeText, runCommand, runNodeTool, runTool, sleepMs } from "./runt
 import { clickImagePoint, imagePointToScreen } from "./screen.mjs";
 
 const OCR_BIN = "/tmp/ocr_text";
+const keepDebugImages = process.env.KEEP_DEBUG_IMAGES === "1";
 
 function browserKeyOf(browser) {
   return browser === "chrome-right" || browser === "right" ? "chrome-right"
@@ -41,6 +42,18 @@ function retryOcr(imagePath, attempts = 4) {
     }
   }
   throw lastError;
+}
+
+function cleanupTempFiles(...paths) {
+  if (keepDebugImages) return;
+  for (const pathname of paths) {
+    if (!pathname) continue;
+    try {
+      fs.unlinkSync(pathname);
+    } catch {
+      // ignore cleanup failures for temp files
+    }
+  }
 }
 
 export function parseCropArgs(browser, argMap) {
@@ -90,48 +103,56 @@ export function findTextLine(lines, targetText) {
 
 export function findTextInBrowser(browser, targetText, crop) {
   const session = captureCropAndOcr(browser, crop, "ocr_find");
-  const line = findTextLine(session.ocr.lines, targetText);
-  return {
-    ok: Boolean(line),
-    found: Boolean(line),
-    browser,
-    targetText,
-    screenshotPath: session.screenshotPath,
-    cropPath: session.cropPath,
-    line,
-    lines: session.ocr.lines,
-  };
+  try {
+    const line = findTextLine(session.ocr.lines, targetText);
+    return {
+      ok: Boolean(line),
+      found: Boolean(line),
+      browser,
+      targetText,
+      screenshotPath: keepDebugImages ? session.screenshotPath : null,
+      cropPath: keepDebugImages ? session.cropPath : null,
+      line,
+      lines: session.ocr.lines,
+    };
+  } finally {
+    cleanupTempFiles(session.screenshotPath, session.cropPath);
+  }
 }
 
 export function clickTextInBrowser(browser, targetText, crop, dryRun = false) {
   const session = captureCropAndOcr(browser, crop, "ocr_click");
-  const line = findTextLine(session.ocr.lines, targetText);
-  if (!line) {
-    throw new Error(JSON.stringify({
-      ok: false,
-      reason: "text_not_found",
+  try {
+    const line = findTextLine(session.ocr.lines, targetText);
+    if (!line) {
+      throw new Error(JSON.stringify({
+        ok: false,
+        reason: "text_not_found",
+        browser,
+        targetText,
+        lines: session.ocr.lines,
+      }, null, 2));
+    }
+
+    const clickCenterX = session.crop.x + line.centerX;
+    const clickCenterY = session.crop.y + line.centerY;
+    const browserKey = browserKeyOf(browser);
+    const screenPoint = dryRun
+      ? imagePointToScreen(browserKey, clickCenterX, clickCenterY)
+      : clickImagePoint(browserKey, clickCenterX, clickCenterY);
+
+    return {
+      ok: true,
       browser,
       targetText,
-      lines: session.ocr.lines,
-    }, null, 2));
+      dryRun,
+      screenshotPath: keepDebugImages ? session.screenshotPath : null,
+      cropPath: keepDebugImages ? session.cropPath : null,
+      line,
+      screenX: Number(screenPoint.screenX.toFixed(2)),
+      screenY: Number(screenPoint.screenY.toFixed(2)),
+    };
+  } finally {
+    cleanupTempFiles(session.screenshotPath, session.cropPath);
   }
-
-  const clickCenterX = session.crop.x + line.centerX;
-  const clickCenterY = session.crop.y + line.centerY;
-  const browserKey = browserKeyOf(browser);
-  const screenPoint = dryRun
-    ? imagePointToScreen(browserKey, clickCenterX, clickCenterY)
-    : clickImagePoint(browserKey, clickCenterX, clickCenterY);
-
-  return {
-    ok: true,
-    browser,
-    targetText,
-    dryRun,
-    screenshotPath: session.screenshotPath,
-    cropPath: session.cropPath,
-    line,
-    screenX: Number(screenPoint.screenX.toFixed(2)),
-    screenY: Number(screenPoint.screenY.toFixed(2)),
-  };
 }
