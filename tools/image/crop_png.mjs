@@ -21,7 +21,7 @@ function parseArgs(argv) {
 const args = parseArgs(process.argv);
 if (!args.image || !args.out || !args.x || !args.y || !args.w || !args.h) {
   console.error(
-    "usage: node tools/crop_png.mjs --image in.png --x 10 --y 10 --w 100 --h 50 --out template.png",
+    "usage: node tools/image/crop_png.mjs --image in.png --x 10 --y 10 --w 100 --h 50 --out template.png",
   );
   process.exit(2);
 }

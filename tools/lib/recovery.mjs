@@ -4,7 +4,7 @@ import { clickImagePoint } from "./screen.mjs";
 const OCR_BIN = "/tmp/ocr_text";
 
 export function captureOcr(browser, screenshotPath) {
-  runTool("capture_browser_window.sh", [browser, screenshotPath]);
+  runTool("system/capture_browser_window.sh", [browser, screenshotPath]);
   return JSON.parse(runCommand(OCR_BIN, [screenshotPath]));
 }
 

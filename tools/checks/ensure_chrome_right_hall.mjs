@@ -1,5 +1,5 @@
-import { RECOVERY } from "./lib/config.mjs";
-import { ensureRecoveryState } from "./lib/recovery.mjs";
+import { RECOVERY } from "../lib/config.mjs";
+import { ensureRecoveryState } from "../lib/recovery.mjs";
 
 try {
   console.log(JSON.stringify(ensureRecoveryState(RECOVERY.chromeRightHall), null, 2));

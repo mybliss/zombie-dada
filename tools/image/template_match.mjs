@@ -116,7 +116,7 @@ const args = parseArgs(process.argv);
 if (process.argv[1] && process.argv[1].endsWith("template_match.mjs")) {
   if (!args.image || !args.template) {
     console.error(
-      "usage: node tools/template_match.mjs --image screenshot.png --template button.png [--threshold 0.92] [--step 2] [--sample 3]",
+      "usage: node tools/image/template_match.mjs --image screenshot.png --template button.png [--threshold 0.92] [--step 2] [--sample 3]",
     );
     process.exit(2);
   }

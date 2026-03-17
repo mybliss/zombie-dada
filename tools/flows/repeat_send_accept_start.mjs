@@ -1,5 +1,7 @@
-import { clickReturn, findReturn } from "./lib/browser_flow.mjs";
-import { parseJson, runNodeTool, sleepMs } from "./lib/runtime.mjs";
+import { clickReturn, findReturn } from "../lib/browser_flow.mjs";
+import { TIMINGS } from "../lib/config.mjs";
+import { logRound, logStepError, logStepOk, logStepStart } from "../lib/logger.mjs";
+import { parseJson, runNodeTool, sleepMs } from "../lib/runtime.mjs";
 
 function waitForBothReturns(timeoutMs, pollMs, initialDelayMs) {
   sleepMs(initialDelayMs);
@@ -46,7 +48,7 @@ function waitForBothReturns(timeoutMs, pollMs, initialDelayMs) {
 
 const friendName = process.argv[2];
 if (!friendName) {
-  console.error("usage: node tools/repeat_send_accept_start.mjs <friend_name> [rounds] [return_timeout_ms]");
+  console.error("usage: node tools/flows/repeat_send_accept_start.mjs <friend_name> [rounds] [return_timeout_ms]");
   process.exit(2);
 }
 
@@ -59,11 +61,26 @@ const results = [];
 
 for (let round = 1; round <= rounds; round += 1) {
   const cycle = { round };
-  cycle.chain = parseJson(runNodeTool("send_and_accept.mjs", [friendName, "15000", "200"]));
+  logRound(round, "start", { friendName });
+  logStepStart("round_send_and_accept", { round, friendName });
+  try {
+    cycle.chain = parseJson(runNodeTool("flows/send_and_accept.mjs", [
+      friendName,
+      String(TIMINGS.acceptInviteTimeoutMs),
+      String(TIMINGS.acceptInvitePollMs),
+    ]));
+    logStepOk("round_send_and_accept", { round, timings: cycle.chain.timings });
+  } catch (error) {
+    logStepError("round_send_and_accept", { round, error: error.message });
+    throw error;
+  }
 
   // Give the game a brief moment after A starts, then recover both sides together.
-  sleepMs(1000);
+  sleepMs(TIMINGS.postStartSettleMs);
+  logStepStart("round_wait_for_returns", { round });
   cycle.returnWatch = waitForBothReturns(returnTimeoutMs, returnPollMs, returnInitialDelayMs);
+  logStepOk("round_wait_for_returns", { round, returnWatch: cycle.returnWatch });
   results.push(cycle);
+  logRound(round, "completed", { timings: cycle.chain.timings });
   console.log(JSON.stringify(cycle, null, 2));
 }

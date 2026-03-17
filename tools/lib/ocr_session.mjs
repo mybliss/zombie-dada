@@ -1,5 +1,4 @@
 import fs from "fs";
-import { CROPS } from "./config.mjs";
 import { normalizeText, runCommand, runNodeTool, runTool, sleepMs } from "./runtime.mjs";
 import { clickImagePoint, imagePointToScreen } from "./screen.mjs";
 
@@ -64,8 +63,8 @@ export function captureCropAndOcr(browser, crop, suffixPrefix) {
   const screenshotPath = `/tmp/${browserKey}_${suffixPrefix}_${suffix}.png`;
   const cropPath = `/tmp/${browserKey}_${suffixPrefix}_crop_${suffix}.png`;
 
-  runTool("capture_browser_window.sh", [browserKey, screenshotPath]);
-  runNodeTool("crop_png.mjs", [
+  runTool("system/capture_browser_window.sh", [browserKey, screenshotPath]);
+  runNodeTool("image/crop_png.mjs", [
     "--image", screenshotPath,
     "--x", String(crop.x),
     "--y", String(crop.y),

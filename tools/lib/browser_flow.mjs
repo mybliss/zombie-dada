@@ -3,7 +3,7 @@ import { ensureRecoveryState } from "./recovery.mjs";
 import { parseJson, runNodeTool, runTool, sleepMs } from "./runtime.mjs";
 
 export function focusWindow(target) {
-  runTool("focus_game_window.sh", [target]);
+  runTool("system/focus_game_window.sh", [target]);
 }
 
 export function ensureEdgeHall() {
@@ -19,15 +19,15 @@ export function ensureStartHall() {
 }
 
 export function inviteFriendByName(friendName) {
-  return parseJson(runNodeTool("invite_friend_by_name.mjs", [friendName]));
+  return parseJson(runNodeTool("flows/invite_friend_by_name.mjs", [friendName]));
 }
 
 export function findText(browser, text, cropArgs = []) {
-  return parseJson(runNodeTool("find_text_in_browser.mjs", [browser, text, ...cropArgs]));
+  return parseJson(runNodeTool("checks/find_text_in_browser.mjs", [browser, text, ...cropArgs]));
 }
 
 export function clickText(browser, text, cropArgs = []) {
-  return parseJson(runNodeTool("click_text_in_browser.mjs", [browser, text, ...cropArgs]));
+  return parseJson(runNodeTool("checks/click_text_in_browser.mjs", [browser, text, ...cropArgs]));
 }
 
 export function waitForText(browser, text, timeoutMs, pollMs, cropArgs = []) {

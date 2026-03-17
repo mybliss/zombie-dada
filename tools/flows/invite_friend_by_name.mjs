@@ -2,19 +2,19 @@ import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { BROWSERS, CROPS, INVITE_FLOW, TIMINGS } from "./lib/config.mjs";
-import { normalizeText, runCommand, runNodeTool, runTool, sleepMs } from "./lib/runtime.mjs";
-import { clickImagePoint, getWindowBounds } from "./lib/screen.mjs";
-import { loadPng, matchTemplate } from "./template_match.mjs";
+import { BROWSERS, CROPS, INVITE_FLOW, TIMINGS } from "../lib/config.mjs";
+import { normalizeText, runCommand, runNodeTool, runTool, sleepMs } from "../lib/runtime.mjs";
+import { getWindowBounds } from "../lib/screen.mjs";
+import { loadPng, matchTemplate } from "../image/template_match.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, "..");
+const repoRoot = path.resolve(__dirname, "..", "..");
 const templatesDir = path.join(repoRoot, "assets", "game_templates");
 const targetName = process.argv[2];
 const dryRun = process.argv.includes("--dry-run");
 
 if (!targetName) {
-  console.error("usage: node tools/invite_friend_by_name.mjs <friend_name> [--dry-run]");
+  console.error("usage: node tools/flows/invite_friend_by_name.mjs <friend_name> [--dry-run]");
   process.exit(2);
 }
 
@@ -44,7 +44,7 @@ function normalizeFriendText(value) {
 
 function clickScreenPoint(screenX, screenY) {
   if (!fs.existsSync("/tmp/chrome_click")) {
-    throw new Error("/tmp/chrome_click not found; compile tools/chrome_click.swift first");
+    throw new Error("/tmp/chrome_click not found; compile tools/native/chrome_click.swift first");
   }
   execFileSync("/tmp/chrome_click", [
     Math.round(screenX).toString(),
@@ -57,9 +57,9 @@ function getChromeBounds() {
 }
 
 function captureChrome() {
-  runTool("focus_game_window.sh", [BROWSERS.accountA]);
+  runTool("system/focus_game_window.sh", [BROWSERS.accountA]);
   sleepMs(TIMINGS.focusSettleMs);
-  runTool("capture_browser_window.sh", [BROWSERS.accountA, screenshotPath]);
+  runTool("system/capture_browser_window.sh", [BROWSERS.accountA, screenshotPath]);
   return loadPng(screenshotPath);
 }
 
@@ -73,7 +73,7 @@ const popupTabsRegion = CROPS.invitePopupTabsRegion;
 const hallBottomRegion = CROPS.hallBottomInviteRegion;
 
 function cropListRegion() {
-  runNodeTool("crop_png.mjs", [
+  runNodeTool("image/crop_png.mjs", [
     "--image",
     screenshotPath,
     "--x",
@@ -90,7 +90,7 @@ function cropListRegion() {
 }
 
 function cropPopupTabsRegion() {
-  runNodeTool("crop_png.mjs", [
+  runNodeTool("image/crop_png.mjs", [
     "--image",
     screenshotPath,
     "--x",
@@ -107,7 +107,7 @@ function cropPopupTabsRegion() {
 }
 
 function cropHallBottomRegion() {
-  runNodeTool("crop_png.mjs", [
+  runNodeTool("image/crop_png.mjs", [
     "--image",
     screenshotPath,
     "--x",

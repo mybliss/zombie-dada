@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "description": "Browser automation workflow for 向僵尸开炮 team runs on macOS.",
+  "scripts": {
+    "start:windows": "./start_windows.sh",
+    "run:once": "node ./run.mjs",
+    "run:loop": "node ./run.mjs"
+  },
   "dependencies": {
     "pngjs": "^7.0.0"
   }

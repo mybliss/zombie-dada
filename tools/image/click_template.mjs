@@ -9,7 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const args = parseArgs(process.argv);
 if (!args.template) {
   console.error(
-    "usage: node tools/click_template.mjs --template /tmp/template.png [--app chrome|chrome-left|chrome-right|left|right|edge|edge-left] [--threshold 0.92] [--step 1] [--sample 3] [--dry-run]",
+    "usage: node tools/image/click_template.mjs --template /tmp/template.png [--app chrome|chrome-left|chrome-right|left|right|edge|edge-left] [--threshold 0.92] [--step 1] [--sample 3] [--dry-run]",
   );
   process.exit(2);
 }
@@ -55,7 +55,7 @@ function getBounds() {
 
 const { left, top, right, bottom, width: windowWidth, height: windowHeight } = getBounds();
 const screenshotPath = `/tmp/${browser}_template_search.png`;
-execFileSync(path.join(__dirname, "capture_browser_window.sh"), [browser, screenshotPath], {
+execFileSync(path.join(__dirname, "..", "system", "capture_browser_window.sh"), [browser, screenshotPath], {
   encoding: "utf8",
 });
 
@@ -92,7 +92,7 @@ if (!result.matched) {
 
 if (!args["dry-run"]) {
   if (!fs.existsSync("/tmp/chrome_click")) {
-    throw new Error("/tmp/chrome_click not found; compile tools/chrome_click.swift first");
+    throw new Error("/tmp/chrome_click not found; compile tools/native/chrome_click.swift first");
   }
   execFileSync("/tmp/chrome_click", [
     Math.round(screenX).toString(),

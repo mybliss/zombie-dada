@@ -14,6 +14,17 @@
 5. 检查 A/B 两边是否出现 `返回`
 6. 两边都返回后自动进入下一轮
 
+当前运行时会把步骤日志直接输出到终端标准输出。
+
+日志是按 JSON 行打印的，便于你直接看当前卡在哪一步，或在外部重定向保存。
+
+仓库根目录现在只需要记两个主入口：
+
+- `./start_windows.sh`
+  - 启动左右浏览器窗口
+- `node ./run.mjs <friend_name> [once|loop]`
+  - 启动主流程
+
 ## 一、目录结构
 
 核心目录：
@@ -21,48 +32,29 @@
 - `assets/game_templates`
 - `tools`
 
-当前脚本已经按“入口层 + 公共模块层”整理：
+当前脚本已经按“外层入口 + 内部实现”整理：
 
-- `tools/send_and_accept.mjs`
-  - 单轮主流程入口
-- `tools/repeat_send_accept_start.mjs`
-  - 多轮循环入口
-- `tools/invite_friend_by_name.mjs`
-  - A 侧邀请好友
-- `tools/ensure_edge_left_hall.mjs`
-  - A 侧回大厅检查入口
-- `tools/ensure_chrome_right_hall.mjs`
-  - B 侧回大厅检查入口
-- `tools/ensure_hall_before_start.mjs`
-  - A 开始前大厅检查入口
-- `tools/lib/runtime.mjs`
-  - 通用运行时工具，例如路径、等待、子进程调用
-- `tools/lib/config.mjs`
-  - 全局配置，例如浏览器角色、裁图区域、等待时间
-- `tools/lib/screen.mjs`
-  - 窗口几何、屏幕坐标换算、系统点击
-- `tools/lib/ocr_session.mjs`
-  - 截图、裁图、OCR、文本定位
-- `tools/lib/recovery.mjs`
-  - 通用状态恢复逻辑
-- `tools/lib/browser_flow.mjs`
-  - 浏览器动作编排、等待和点击等公共流程函数
+- `start_windows.sh`
+- `run.mjs`
 
-最常用的脚本：
+内部实现目录：
 
-- `tools/start_game_windows.sh`
-- `tools/send_and_accept.mjs`
-- `tools/repeat_send_accept_start.mjs`
-- `tools/invite_friend_by_name.mjs`
+- `tools/flows/`
+  - 主流程和循环流程
+- `tools/checks/`
+  - OCR 点击和状态检查入口
+- `tools/lib/`
+  - 公共模块，例如配置、运行时、OCR 会话、状态恢复
+- `tools/system/`
+  - 浏览器窗口和截图相关 shell 脚本
+- `tools/image/`
+  - 裁图、模板匹配等图像工具
+- `tools/native/`
+  - Swift 原生小工具源码
 
-推荐理解方式：
+最常用的入口：
 
-- `tools/*.mjs`
-  - 入口脚本，负责某一类流程
-- `tools/lib/*.mjs`
-  - 公共模块，负责被入口脚本复用
-- `tools/*.sh`
-  - 浏览器窗口和截图相关的系统脚本
+- `run.mjs`
 
 ## 二、运行环境
 
@@ -143,7 +135,7 @@ npm install
 如果你想手动编译核心工具，命令如下：
 
 ```bash
-xcrun swiftc ./tools/chrome_click.swift -framework AppKit -o /tmp/chrome_click
+xcrun swiftc ./tools/native/chrome_click.swift -framework AppKit -o /tmp/chrome_click
 ```
 
 ## 四、前置条件
@@ -236,7 +228,7 @@ xcrun swiftc --version
 ### 1. 启动双浏览器窗口
 
 ```bash
-./tools/start_game_windows.sh
+./start_windows.sh
 ```
 
 启动后：
@@ -252,7 +244,7 @@ xcrun swiftc --version
 ### 2. 单次执行一轮
 
 ```bash
-node ./tools/send_and_accept.mjs 'Yuxi'
+node ./run.mjs 'Yuxi'
 ```
 
 这里的 `Yuxi` 是要邀请的好友名字。
@@ -268,7 +260,7 @@ node ./tools/send_and_accept.mjs 'Yuxi'
 跑固定轮数：
 
 ```bash
-node ./tools/repeat_send_accept_start.mjs 'Yuxi' 5
+node ./run.mjs 'Yuxi' loop 5
 ```
 
 表示连续跑 `5` 轮。
@@ -276,7 +268,7 @@ node ./tools/repeat_send_accept_start.mjs 'Yuxi' 5
 如果你想长时间压测，也可以把轮数改大，例如：
 
 ```bash
-node ./tools/repeat_send_accept_start.mjs 'Yuxi' 50
+node ./run.mjs 'Yuxi' loop 50
 ```
 
 ## 八、主流程是怎么工作的
@@ -285,7 +277,7 @@ node ./tools/repeat_send_accept_start.mjs 'Yuxi' 50
 
 脚本入口：
 
-- `tools/invite_friend_by_name.mjs`
+- `tools/flows/invite_friend_by_name.mjs`
 
 逻辑大致是：
 
@@ -300,7 +292,7 @@ node ./tools/repeat_send_accept_start.mjs 'Yuxi' 50
 
 脚本入口：
 
-- `tools/send_and_accept.mjs`
+- `tools/flows/send_and_accept.mjs`
 
 逻辑大致是：
 
@@ -315,7 +307,7 @@ node ./tools/repeat_send_accept_start.mjs 'Yuxi' 50
 
 仍由：
 
-- `tools/send_and_accept.mjs`
+- `tools/flows/send_and_accept.mjs`
 
 逻辑大致是：
 
@@ -329,7 +321,7 @@ node ./tools/repeat_send_accept_start.mjs 'Yuxi' 50
 
 主入口：
 
-- `tools/repeat_send_accept_start.mjs`
+- `tools/flows/repeat_send_accept_start.mjs`
 
 当前策略：
 
@@ -341,27 +333,27 @@ node ./tools/repeat_send_accept_start.mjs 'Yuxi' 50
 
 ## 九、常用脚本说明
 
-### `tools/start_game_windows.sh`
+### `tools/system/start_game_windows.sh`
 
 用途：
 
 - 启动 Edge 和 Chrome
 - 设置固定左右窗口布局
 
-### `tools/send_and_accept.mjs`
+### `tools/flows/send_and_accept.mjs`
 
 用途：
 
 - 执行单次 `邀请 -> 接受 -> 开始`
 
-### `tools/repeat_send_accept_start.mjs`
+### `tools/flows/repeat_send_accept_start.mjs`
 
 用途：
 
 - 执行多轮循环
 - 自动处理战斗结束后的 `返回`
 
-### `tools/find_text_in_browser.mjs`
+### `tools/checks/find_text_in_browser.mjs`
 
 用途：
 
@@ -370,10 +362,10 @@ node ./tools/repeat_send_accept_start.mjs 'Yuxi' 50
 示例：
 
 ```bash
-node ./tools/find_text_in_browser.mjs edge-left '开始游戏'
+node ./tools/checks/find_text_in_browser.mjs edge-left '开始游戏'
 ```
 
-### `tools/click_text_in_browser.mjs`
+### `tools/checks/click_text_in_browser.mjs`
 
 用途：
 
@@ -382,7 +374,7 @@ node ./tools/find_text_in_browser.mjs edge-left '开始游戏'
 示例：
 
 ```bash
-node ./tools/click_text_in_browser.mjs edge-left '返回'
+node ./tools/checks/click_text_in_browser.mjs edge-left '返回'
 ```
 
 ## 十、当前已知限制
@@ -415,9 +407,9 @@ node ./tools/click_text_in_browser.mjs edge-left '返回'
 推荐命令：
 
 ```bash
-./tools/start_game_windows.sh
-node ./tools/send_and_accept.mjs 'Yuxi'
-node ./tools/repeat_send_accept_start.mjs 'Yuxi' 5
+./start_windows.sh
+node ./run.mjs 'Yuxi'
+node ./run.mjs 'Yuxi' loop 5
 ```
 
 ## 十二、当前仓库

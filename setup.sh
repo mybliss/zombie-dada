@@ -82,8 +82,8 @@ cd "$ROOT_DIR"
 npm install
 
 info "准备本地 Swift 工具"
-install_prebuilt_or_compile "chrome_click" "$ROOT_DIR/tools/chrome_click.swift" -framework AppKit
-install_prebuilt_or_compile "ocr_text" "$ROOT_DIR/tools/ocr_text.swift" -framework Vision -framework AppKit
+install_prebuilt_or_compile "chrome_click" "$ROOT_DIR/tools/native/chrome_click.swift" -framework AppKit
+install_prebuilt_or_compile "ocr_text" "$ROOT_DIR/tools/native/ocr_text.swift" -framework Vision -framework AppKit
 
 cat <<'EOF'
 
@@ -94,8 +94,8 @@ cat <<'EOF'
 - 屏幕录制
 
 推荐下一步：
-1. ./tools/start_game_windows.sh
+1. ./start_windows.sh
 2. 登录 Edge 和 Chrome 两个账号
-3. node ./tools/send_and_accept.mjs 'Yuxi'
+3. node ./run.mjs 'Yuxi'
 
 EOF
