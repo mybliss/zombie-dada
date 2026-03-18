@@ -9,7 +9,6 @@ export const CROPS = {
   edgeStart: ["--x", "450", "--y", "1700", "--w", "650", "--h", "420"],
   returnRegion: ["--x", "0", "--y", "1200", "--w", "1000", "--h", "900"],
   inviteListRegion: { x: 260, y: 330, w: 1250, h: 1220 },
-  invitePopupTabsRegion: { x: 250, y: 1780, w: 800, h: 260 },
   hallBottomInviteRegion: { x: 240, y: 1500, w: 1100, h: 520 },
 };
 
@@ -20,17 +19,15 @@ export const TIMINGS = {
   roomWaitShortMs: 1200,
   roomWaitLongMs: 1800,
   focusSettleMs: 250,
-  postAcceptSettleMs: 500,
-  beforeStartSettleMs: 800,
+  postAcceptSettleMs: 200,
+  beforeStartSettleMs: 0,
   postStartSettleMs: 1000,
   returnTimeoutMs: 600000,
-  returnPollMs: 5000,
-  returnInitialDelayMs: 300000,
+  returnPollMs: 10000,
+  returnInitialDelayMs: 360000,
   invitePopupOpenSettleMs: 180,
   inviteFriendsTabSettleMs: 300,
 };
-
-export const IMAGE_SCALE = 2;
 
 export const WINDOW_ROLE_BROWSERS = {
   "edge-left": "Microsoft Edge",
@@ -77,24 +74,6 @@ export const RECOVERY = {
 };
 
 export const INVITE_FLOW = {
-  popupMatch: {
-    threshold: "0.90",
-    step: "1",
-    sample: "2",
-    "region-x": "650",
-    "region-y": "300",
-    "region-w": "650",
-    "region-h": "1200",
-  },
-  nearbyInviteButton: {
-    threshold: "0.80",
-    step: "1",
-    sample: "2",
-    regionX: 700,
-    regionW: 520,
-    deltaY: 170,
-  },
-  popupFriendsFallbackPoint: { centerX: 758, centerY: 1920 },
   hallInviteCandidates: [
     { deltaX: 0, deltaY: 0 },
     { deltaX: -80, deltaY: 4 },

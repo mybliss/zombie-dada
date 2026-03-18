@@ -1,4 +1,4 @@
-import { clickReturn, findReturn } from "../lib/browser_flow.mjs";
+import { findAndClickReturn } from "../lib/browser_flow.mjs";
 import { TIMINGS } from "../lib/config.mjs";
 import { logRound, logStepError, logStepOk, logStepStart } from "../lib/logger.mjs";
 import { formatMarkedResult, parseMarkedResult, runNodeTool, sleepMs, tryParseJson } from "../lib/runtime.mjs";
@@ -13,17 +13,13 @@ function waitForBothReturns(timeoutMs, pollMs, initialDelayMs) {
 
   while (Date.now() - start < timeoutMs) {
     if (!state.edgeLeft) {
-      const found = findReturn("edge-left");
-      if (found?.found) {
-        state.edgeLeft = clickReturn("edge-left");
-      }
+      const result = findAndClickReturn("edge-left");
+      if (result?.ok) state.edgeLeft = result;
     }
 
     if (!state.chromeRight) {
-      const found = findReturn("chrome-right");
-      if (found?.found) {
-        state.chromeRight = clickReturn("chrome-right");
-      }
+      const result = findAndClickReturn("chrome-right");
+      if (result?.ok) state.chromeRight = result;
     }
 
     if (state.edgeLeft?.ok && state.chromeRight?.ok) {

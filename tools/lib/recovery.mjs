@@ -1,11 +1,17 @@
+import fs from "fs";
 import { runCommand, runTool, normalizeText, sleepMs } from "./runtime.mjs";
-import { clickImagePoint } from "./screen.mjs";
+import { clickImagePoint, scaleImagePoint } from "./screen.mjs";
 
 const OCR_BIN = "/tmp/ocr_text";
+const keepDebugImages = process.env.KEEP_DEBUG_IMAGES === "1";
 
 export function captureOcr(browser, screenshotPath) {
   runTool("system/capture_browser_window.sh", [browser, screenshotPath]);
-  return JSON.parse(runCommand(OCR_BIN, [screenshotPath]));
+  const result = JSON.parse(runCommand(OCR_BIN, [screenshotPath]));
+  if (!keepDebugImages) {
+    try { fs.unlinkSync(screenshotPath); } catch {}
+  }
+  return result;
 }
 
 export function hasAnyText(lines, texts) {
@@ -22,7 +28,8 @@ export function clickLine(browser, line) {
 }
 
 export function clickFixedPoint(browser, point) {
-  return clickImagePoint(browser, point.x, point.y);
+  const scaled = scaleImagePoint(point.x, point.y, browser);
+  return clickImagePoint(browser, scaled.x, scaled.y);
 }
 
 export function ensureRecoveryState(spec) {
