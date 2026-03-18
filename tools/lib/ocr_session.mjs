@@ -1,6 +1,6 @@
 import fs from "fs";
 import { normalizeText, runCommand, runNodeTool, runTool, sleepMs } from "./runtime.mjs";
-import { clickImagePoint, imagePointToScreen } from "./screen.mjs";
+import { clickImagePoint, imagePointToScreen, scaleCrop } from "./screen.mjs";
 
 const OCR_BIN = "/tmp/ocr_text";
 const keepDebugImages = process.env.KEEP_DEBUG_IMAGES === "1";
@@ -72,6 +72,7 @@ export function parseCropArgs(browser, argMap) {
 
 export function captureCropAndOcr(browser, crop, suffixPrefix) {
   const browserKey = browserKeyOf(browser);
+  const scaled = scaleCrop(crop, browserKey);
   const suffix = `${process.pid}_${Date.now()}`;
   const screenshotPath = `/tmp/${browserKey}_${suffixPrefix}_${suffix}.png`;
   const cropPath = `/tmp/${browserKey}_${suffixPrefix}_crop_${suffix}.png`;
@@ -79,10 +80,10 @@ export function captureCropAndOcr(browser, crop, suffixPrefix) {
   runTool("system/capture_browser_window.sh", [browserKey, screenshotPath]);
   runNodeTool("image/crop_png.mjs", [
     "--image", screenshotPath,
-    "--x", String(crop.x),
-    "--y", String(crop.y),
-    "--w", String(crop.w),
-    "--h", String(crop.h),
+    "--x", String(scaled.x),
+    "--y", String(scaled.y),
+    "--w", String(scaled.w),
+    "--h", String(scaled.h),
     "--out", cropPath,
   ]);
   waitForImage(cropPath);
@@ -92,7 +93,7 @@ export function captureCropAndOcr(browser, crop, suffixPrefix) {
     browserKey,
     screenshotPath,
     cropPath,
-    crop,
+    crop: scaled,
     ocr,
   };
 }
