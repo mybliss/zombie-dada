@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>游戏自动化</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f7;
+      --bg-sidebar: rgba(246, 246, 248, 0.8);
+      --text-primary: #1d1d1f;
+      --text-secondary: #86868b;
+      --accent: #007aff;
+      --accent-hover: #0066d6;
+      --border: #d2d2d7;
+      --success: #34c759;
+      --error: #ff3b30;
+      --warning: #ff9500;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .app-container {
+      display: flex;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 200px;
+      background: var(--bg-sidebar);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid var(--border);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      padding: 8px 12px;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-primary);
+      transition: background 0.15s;
+    }
+
+    .sidebar-item:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    .sidebar-item.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    .sidebar-item svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .main-content {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+    }
+
+    .page {
+      display: none;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    .card {
+      background: var(--bg-primary);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: var(--text-secondary);
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 13px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-primary);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+    }
+
+    .form-select {
+      width: 100%;
+      padding: 8px 12px;
+      font-size: 13px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-primary);
+      cursor: pointer;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 16px;
+    }
+
+    .radio-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .radio-item input[type="radio"] {
+      accent-color: var(--accent);
+    }
+
+    .btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-primary:disabled {
+      background: var(--border);
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: #e8e8ed;
+    }
+
+    .btn-danger {
+      background: var(--error);
+      color: white;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-idle {
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+    }
+
+    .status-running {
+      background: rgba(52, 199, 89, 0.15);
+      color: var(--success);
+    }
+
+    .status-error {
+      background: rgba(255, 59, 48, 0.15);
+      color: var(--error);
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-running .status-dot {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .log-container {
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: "SF Mono", Monaco, "Courier New", monospace;
+      font-size: 12px;
+      color: #d4d4d4;
+      height: 250px;
+      overflow-y: auto;
+      margin-top: 16px;
+    }
+
+    .log-line {
+      padding: 2px 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .log-time {
+      color: #6a9955;
+    }
+
+    .log-info {
+      color: #9cdcfe;
+    }
+
+    .log-error {
+      color: #f14c4c;
+    }
+
+    .log-stdout {
+      color: #ce9178;
+    }
+
+    .log-stderr {
+      color: #f14c4c;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .info-value {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .section-divider {
+      border-top: 1px solid var(--border);
+      margin: 20px 0;
+      padding-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="sidebar">
+      <div class="sidebar-title">功能</div>
+      <div class="sidebar-item active" data-page="team">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        组队寰球
+      </div>
+      <div class="sidebar-item" data-page="rescue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M16 8l-4 4-4-4"/>
+          <path d="M12 16V9"/>
+        </svg>
+        单人寰球
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="page active" id="page-team">
+        <div class="card">
+          <div class="card-title">启动双浏览器</div>
+          <div class="info-row">
+            <span class="info-label">左侧浏览器</span>
+            <span class="info-value">Microsoft Edge</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">右侧浏览器</span>
+            <span class="info-value">Google Chrome</span>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-primary" id="btn-start-windows">启动双浏览器</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">组队寰球设置</div>
+          <div class="form-group">
+            <label class="form-label">被邀请人</label>
+            <input type="text" class="form-input" id="team-friend-name" placeholder="输入好友名称" value="Yuxi">
+          </div>
+          <div class="form-group">
+            <label class="form-label">运行模式</label>
+            <div class="radio-group">
+              <label class="radio-item">
+                <input type="radio" name="team-mode" value="loop" checked>
+                无限循环
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="team-mode" value="rounds">
+                指定轮数
+              </label>
+            </div>
+          </div>
+          <div class="form-group hidden" id="team-rounds-group">
+            <label class="form-label">轮数</label>
+            <input type="number" class="form-input" id="team-rounds" value="5" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">状态</label>
+            <div>
+              <span class="status-badge status-idle" id="team-status">
+                <span class="status-dot"></span>
+                空闲
+              </span>
+            </div>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-primary" id="btn-team-start">开始</button>
+            <button class="btn btn-danger" id="btn-team-stop" disabled>停止</button>
+          </div>
+          <div class="log-container" id="team-log-container"></div>
+        </div>
+      </div>
+
+      <div class="page" id="page-rescue">
+        <div class="card">
+          <div class="card-title">启动单浏览器</div>
+          <div class="info-row">
+            <span class="info-label">浏览器</span>
+            <span class="info-value">Microsoft Edge</span>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-primary" id="btn-start-single-browser">启动浏览器</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">单人寰球设置</div>
+          <div class="form-group">
+            <div class="info-row">
+              <span class="info-label" style="color: var(--warning);">提示</span>
+              <span class="info-value" style="color: var(--warning);">必须要全屏使用</span>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">运行模式</label>
+            <div class="radio-group">
+              <label class="radio-item">
+                <input type="radio" name="rescue-run-mode" value="loop" checked>
+                无限循环
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="rescue-run-mode" value="rounds">
+                指定轮数
+              </label>
+            </div>
+          </div>
+          <div class="form-group hidden" id="rescue-rounds-group">
+            <label class="form-label">轮数</label>
+            <input type="number" class="form-input" id="rescue-rounds" value="5" min="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">状态</label>
+            <div>
+              <span class="status-badge status-idle" id="rescue-status">
+                <span class="status-dot"></span>
+                空闲
+              </span>
+            </div>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-primary" id="btn-rescue-start">开始</button>
+            <button class="btn btn-danger" id="btn-rescue-stop" disabled>停止</button>
+          </div>
+          <div class="log-container" id="rescue-log-container"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '';
+
+    let ws = null;
+    let teamLogs = [];
+    let rescueLogs = [];
+    let currentPage = 'team';
+
+    function connectWebSocket() {
+      const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${wsProtocol}//${location.host}`);
+
+      ws.onopen = () => {
+        addLog('info', '已连接到服务器');
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'log') {
+          addLog(data.logType, data.message);
+        } else if (data.type === 'process_end') {
+          updateProcessStatus(data.processKey, false);
+        }
+      };
+
+      ws.onclose = () => {
+        addLog('error', '与服务器断开连接');
+        setTimeout(connectWebSocket, 3000);
+      };
+
+      ws.onerror = () => {
+        addLog('error', 'WebSocket 连接错误');
+      };
+    }
+
+    function addLog(type, message) {
+      const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+      
+      const teamContainer = document.getElementById('team-log-container');
+      const rescueContainer = document.getElementById('rescue-log-container');
+      
+      const line = document.createElement('div');
+      line.className = `log-line log-${type}`;
+      line.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+      
+      teamContainer.appendChild(line.cloneNode(true));
+      rescueContainer.appendChild(line);
+      
+      teamContainer.scrollTop = teamContainer.scrollHeight;
+      rescueContainer.scrollTop = rescueContainer.scrollHeight;
+      
+      teamLogs.push({ type, message, time });
+      rescueLogs.push({ type, message, time });
+      
+      if (teamLogs.length > 500) {
+        teamLogs.shift();
+        teamContainer.removeChild(teamContainer.firstChild);
+      }
+      if (rescueLogs.length > 500) {
+        rescueLogs.shift();
+        rescueContainer.removeChild(rescueContainer.firstChild);
+      }
+    }
+
+    function updateProcessStatus(processKey, running) {
+      if (processKey === 'team-run') {
+        const status = document.getElementById('team-status');
+        const startBtn = document.getElementById('btn-team-start');
+        const stopBtn = document.getElementById('btn-team-stop');
+        if (running) {
+          status.className = 'status-badge status-running';
+          status.innerHTML = '<span class="status-dot"></span>运行中';
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
+        } else {
+          status.className = 'status-badge status-idle';
+          status.innerHTML = '<span class="status-dot"></span>空闲';
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+        }
+      } else if (processKey === 'rescue-run') {
+        const status = document.getElementById('rescue-status');
+        const startBtn = document.getElementById('btn-rescue-start');
+        const stopBtn = document.getElementById('btn-rescue-stop');
+        if (running) {
+          status.className = 'status-badge status-running';
+          status.innerHTML = '<span class="status-dot"></span>运行中';
+          startBtn.disabled = true;
+          stopBtn.disabled = false;
+        } else {
+          status.className = 'status-badge status-idle';
+          status.innerHTML = '<span class="status-dot"></span>空闲';
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+        }
+      }
+    }
+
+    async function apiCall(endpoint, method = 'GET', body = null) {
+      const options = {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+      };
+      if (body) options.body = JSON.stringify(body);
+      const response = await fetch(`${API_BASE}${endpoint}`, options);
+      return response.json();
+    }
+
+    document.querySelectorAll('.sidebar-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        const page = item.dataset.page;
+        currentPage = page;
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(`page-${page}`).classList.add('active');
+      });
+    });
+
+    document.querySelectorAll('input[name="team-mode"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const roundsGroup = document.getElementById('team-rounds-group');
+        if (e.target.value === 'rounds') {
+          roundsGroup.classList.remove('hidden');
+        } else {
+          roundsGroup.classList.add('hidden');
+        }
+      });
+    });
+
+    document.querySelectorAll('input[name="rescue-run-mode"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const roundsGroup = document.getElementById('rescue-rounds-group');
+        if (e.target.value === 'rounds') {
+          roundsGroup.classList.remove('hidden');
+        } else {
+          roundsGroup.classList.add('hidden');
+        }
+      });
+    });
+
+    document.getElementById('btn-start-windows').addEventListener('click', async () => {
+      const result = await apiCall('/api/start-windows', 'POST');
+      if (result.ok) {
+        addLog('info', '双浏览器启动中...');
+      } else {
+        addLog('error', `启动失败: ${result.error}`);
+      }
+    });
+
+    document.getElementById('btn-start-single-browser').addEventListener('click', async () => {
+      const result = await apiCall('/api/start-single-browser', 'POST');
+      if (result.ok) {
+        addLog('info', '浏览器启动中...');
+      } else {
+        addLog('error', `启动失败: ${result.error}`);
+      }
+    });
+
+    document.getElementById('btn-team-start').addEventListener('click', async () => {
+      const friendName = document.getElementById('team-friend-name').value;
+      const mode = document.querySelector('input[name="team-mode"]:checked').value;
+      const rounds = mode === 'rounds' ? parseInt(document.getElementById('team-rounds').value) : null;
+
+      const result = await apiCall('/api/team-run', 'POST', { friendName, mode, rounds });
+      if (result.ok) {
+        updateProcessStatus('team-run', true);
+        addLog('info', '组队寰球已启动');
+      } else {
+        addLog('error', `启动失败: ${result.error}`);
+      }
+    });
+
+    document.getElementById('btn-team-stop').addEventListener('click', async () => {
+      const result = await apiCall('/api/stop', 'POST', { processKey: 'team-run' });
+      if (result.ok) {
+        updateProcessStatus('team-run', false);
+        addLog('info', '组队寰球已停止');
+      }
+    });
+
+    document.getElementById('btn-rescue-start').addEventListener('click', async () => {
+      const browser = 'edge';
+      const runMode = document.querySelector('input[name="rescue-run-mode"]:checked').value;
+      const rounds = runMode === 'rounds' ? parseInt(document.getElementById('rescue-rounds').value) : null;
+
+      const result = await apiCall('/api/rescue-run', 'POST', { browser, runMode, rounds });
+      if (result.ok) {
+        updateProcessStatus('rescue-run', true);
+        addLog('info', result.message || '寰球救援已启动');
+      } else {
+        addLog('error', `启动失败: ${result.error}`);
+      }
+    });
+
+    document.getElementById('btn-rescue-stop').addEventListener('click', async () => {
+      const result = await apiCall('/api/stop', 'POST', { processKey: 'rescue-run' });
+      if (result.ok) {
+        updateProcessStatus('rescue-run', false);
+        addLog('info', '寰球救援已停止');
+      }
+    });
+
+    connectWebSocket();
+  </script>
+</body>
+</html>

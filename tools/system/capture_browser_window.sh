@@ -10,12 +10,12 @@ if [[ "$target" != "chrome" && "$target" != "chrome-left" && "$target" != "chrom
   exit 2
 fi
 
-screen_bounds=$(osascript -e 'tell application "Finder" to get bounds of window of desktop')
-IFS=', ' read -r sleft stop sright sbottom <<< "$screen_bounds"
-screen_width=$((sright - sleft))
-screen_height=$((sbottom - stop))
+screen_width=2560
+screen_height=1600
 window_width=$((screen_width / 2))
-right_left=$((sleft + window_width))
+sleft=0
+stop=0
+right_left=$window_width
 
 case "$target" in
   chrome|chrome-left|edge|edge-left|left)
@@ -26,9 +26,8 @@ case "$target" in
     ;;
 esac
 
-osascript -e 'tell application "Codex" to hide' >/dev/null 2>&1 || true
-"$SCRIPT_DIR/focus_game_window.sh" "$target" >/dev/null
+"$SCRIPT_DIR/focus_game_window.sh" "$target" >/dev/null 2>&1 || true
 sleep 0.25
 
-screencapture -R"${left},${stop},${window_width},${screen_height}" "$outfile"
+screencapture -x -R"${left},${stop},${window_width},${screen_height}" "$outfile"
 echo "$outfile"

@@ -2,7 +2,7 @@ import { execFileSync } from "child_process";
 import fs from "fs";
 import path from "path";
 import { WINDOW_ROLE_BROWSERS } from "./config.mjs";
-import { repoRoot, runCommand } from "./runtime.mjs";
+import { repoRoot } from "./runtime.mjs";
 
 let _displayScale = null;
 
@@ -25,9 +25,19 @@ let _desktopBounds = null;
 
 function getDesktopBounds() {
   if (_desktopBounds !== null) return _desktopBounds;
-  const raw = runCommand("osascript", ["-e", 'tell application "Finder" to get bounds of window of desktop']);
-  const [sleft, stop, sright, sbottom] = raw.split(/,\s*/).map((value) => Number.parseInt(value, 10));
-  _desktopBounds = { left: sleft, top: stop, right: sright, bottom: sbottom };
+  try {
+    const raw = execFileSync("system_profiler", ["SPDisplaysDataType"], { encoding: "utf8" });
+    const match = raw.match(/Resolution:\s*(\d+)\s*x\s*(\d+)/);
+    if (match) {
+      const width = Number.parseInt(match[1], 10);
+      const height = Number.parseInt(match[2], 10);
+      _desktopBounds = { left: 0, top: 0, right: width, bottom: height };
+    } else {
+      _desktopBounds = { left: 0, top: 0, right: 1680, bottom: 1050 };
+    }
+  } catch {
+    _desktopBounds = { left: 0, top: 0, right: 1680, bottom: 1050 };
+  }
   return _desktopBounds;
 }
 
@@ -40,7 +50,6 @@ function getReferenceSize() {
     _referenceSize = JSON.parse(fs.readFileSync(REF_PATH, "utf8"));
     return _referenceSize;
   } catch {
-    // First run: current screen becomes the reference
     const bounds = getWindowBounds("edge-left");
     const scale = getDisplayScale();
     _referenceSize = {
@@ -109,9 +118,15 @@ export function getWindowBounds(browser) {
   if (!appName) {
     throw new Error(`unsupported browser: ${browser}`);
   }
-  const appBounds = runCommand("osascript", ["-e", `tell application "${appName}" to get bounds of front window`]);
-  const [left, top, right, bottom] = appBounds.split(/,\s*/).map((value) => Number.parseInt(value, 10));
-  return { left, top, right, bottom, width: right - left, height: bottom - top };
+  try {
+    const appBounds = execFileSync("osascript", ["-e", `tell application "${appName}" to get bounds of front window`], {
+      encoding: "utf8",
+    });
+    const [left, top, right, bottom] = appBounds.trim().split(/,\s*/).map((value) => Number.parseInt(value, 10));
+    return { left, top, right, bottom, width: right - left, height: bottom - top };
+  } catch {
+    return { left: sleft, top: stop, right: sleft + width, bottom: sbottom, width, height: sbottom - stop };
+  }
 }
 
 export function imagePointToScreen(browser, centerX, centerY) {
@@ -128,6 +143,30 @@ export function imagePointToScreen(browser, centerX, centerY) {
 
 export function clickImagePoint(browser, centerX, centerY) {
   const { screenX, screenY } = imagePointToScreen(browser, centerX, centerY);
+  clickScreenPoint(screenX, screenY);
+  return { screenX, screenY };
+}
+
+export function getCropOffset(cropInfoPath) {
+  try {
+    if (fs.existsSync(cropInfoPath)) {
+      const cropInfo = JSON.parse(fs.readFileSync(cropInfoPath, "utf8"));
+      return { 
+        offsetX: cropInfo.offset_x || 0, 
+        offsetY: cropInfo.offset_y || 0
+      };
+    }
+  } catch {}
+  return { offsetX: 0, offsetY: 0 };
+}
+
+export function clickImagePointWithOffset(browser, centerX, centerY, cropInfoPath) {
+  const { offsetX, offsetY } = getCropOffset(cropInfoPath);
+  const scale = getDisplayScale();
+  
+  const screenX = (centerX + offsetX) / scale;
+  const screenY = (centerY + offsetY) / scale;
+  
   clickScreenPoint(screenX, screenY);
   return { screenX, screenY };
 }

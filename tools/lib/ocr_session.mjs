@@ -70,14 +70,14 @@ export function parseCropArgs(browser, argMap) {
   };
 }
 
-export function captureCropAndOcr(browser, crop, suffixPrefix) {
+export function captureCropAndOcr(browser, crop, suffixPrefix, skipScale = false) {
   const browserKey = browserKeyOf(browser);
-  const scaled = scaleCrop(crop, browserKey);
+  const scaled = skipScale ? crop : scaleCrop(crop, browserKey);
   const suffix = `${process.pid}_${Date.now()}`;
   const screenshotPath = `/tmp/${browserKey}_${suffixPrefix}_${suffix}.png`;
   const cropPath = `/tmp/${browserKey}_${suffixPrefix}_crop_${suffix}.png`;
 
-  runTool("system/capture_browser_window.sh", [browserKey, screenshotPath]);
+  runTool("system/capture_game_window.sh", [browserKey, screenshotPath]);
   runNodeTool("image/crop_png.mjs", [
     "--image", screenshotPath,
     "--x", String(scaled.x),
