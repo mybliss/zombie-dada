@@ -300,15 +300,35 @@ async function checkWaitingStart() {
       
       step(8, "检查其他状态");
       
-      const mercenaryLine = findTextLine(session.ocr.lines, "佣兵队列");
+      const mercenaryLine = findTextLine(session.ocr.lines, "佣兵列队");
+      log("检查佣兵列队", { found: !!mercenaryLine });
+      
       if (mercenaryLine) {
-        log("找到佣兵队列，等待360秒");
+        log("找到佣兵列队，等待360秒");
         sleepMs(360000);
         return { success: true };
       }
       
+      let mercenaryRetry = 0;
+      const maxMercenaryRetry = 5;
+      while (mercenaryRetry < maxMercenaryRetry) {
+        mercenaryRetry++;
+        log("未找到佣兵列队，等待10秒后重试", { retry: mercenaryRetry, max: maxMercenaryRetry });
+        sleepMs(10000);
+        
+        const retrySession = captureAndOcr("battleStatus");
+        const retryMercenaryLine = findTextLine(retrySession.ocr.lines, "佣兵列队");
+        log("重试检查佣兵列队", { found: !!retryMercenaryLine });
+        
+        if (retryMercenaryLine) {
+          log("找到佣兵列队，等待360秒");
+          sleepMs(360000);
+          return { success: true };
+        }
+      }
+      
       const levelLines = session.ocr.lines.filter(line => line.text.includes("级"));
-      log("包含'级'的文字", { lines: levelLines.map(l => l.text) });
+      log("检查包含'级'的文字", { lines: levelLines.map(l => l.text) });
       
       if (levelLines.length > 0) {
         log("找到关卡，等待360秒");
@@ -316,16 +336,16 @@ async function checkWaitingStart() {
         return { success: true };
       }
       
-      let retryCount = 0;
-      const maxRetry = 2;
-      while (retryCount < maxRetry) {
-        retryCount++;
-        log("未找到关卡，等待10秒后重试", { retry: retryCount, max: maxRetry });
+      let levelRetry = 0;
+      const maxLevelRetry = 5;
+      while (levelRetry < maxLevelRetry) {
+        levelRetry++;
+        log("未找到关卡，等待10秒后重试", { retry: levelRetry, max: maxLevelRetry });
         sleepMs(10000);
         
         const retrySession = captureAndOcr("battleStatus");
         const retryLevelLines = retrySession.ocr.lines.filter(line => line.text.includes("级"));
-        log("重试包含'级'的文字", { lines: retryLevelLines.map(l => l.text) });
+        log("重试检查包含'级'的文字", { lines: retryLevelLines.map(l => l.text) });
         
         if (retryLevelLines.length > 0) {
           log("找到关卡，等待360秒");
@@ -334,7 +354,34 @@ async function checkWaitingStart() {
         }
       }
       
-      log("未找到有效状态，本轮失败");
+      const skillLines = session.ocr.lines.filter(line => line.text.includes("选择技能"));
+      log("检查包含'选择技能'的文字", { lines: skillLines.map(l => l.text) });
+      
+      if (skillLines.length > 0) {
+        log("找到选择技能，等待360秒");
+        sleepMs(360000);
+        return { success: true };
+      }
+      
+      let skillRetry = 0;
+      const maxSkillRetry = 5;
+      while (skillRetry < maxSkillRetry) {
+        skillRetry++;
+        log("未找到选择技能，等待10秒后重试", { retry: skillRetry, max: maxSkillRetry });
+        sleepMs(10000);
+        
+        const retrySession = captureAndOcr("battleStatus");
+        const retrySkillLines = retrySession.ocr.lines.filter(line => line.text.includes("选择技能"));
+        log("重试检查包含'选择技能'的文字", { lines: retrySkillLines.map(l => l.text) });
+        
+        if (retrySkillLines.length > 0) {
+          log("找到选择技能，等待360秒");
+          sleepMs(360000);
+          return { success: true };
+        }
+      }
+      
+      log("未找到有效状态，本轮失败，进入下轮");
       return { success: false };
     }
   }
