@@ -416,7 +416,36 @@ async function checkJoinResult() {
     sleepMs(30000);
   }
 
-  log("检测返回超时，本轮失败");
+  log("检测返回超时，检查佣兵列队");
+  const mercenarySession = captureAndOcr("battleStatus");
+  const mercenaryLine = findTextLine(mercenarySession.ocr.lines, "佣兵列队");
+  
+  if (mercenaryLine) {
+    log("找到佣兵列队，继续检查返回");
+    let retryAttempt = 0;
+    while (retryAttempt < maxAttempts) {
+      retryAttempt++;
+      
+      const retrySession = captureAndOcr("returnButton");
+      const retryReturnLine = findTextLine(retrySession.ocr.lines, "返回");
+      
+      if (retryReturnLine) {
+        log("找到返回", { attempt: retryAttempt });
+        step(10, "战斗结束");
+        clickAtLine("returnButton", retryReturnLine);
+        sleepMs(500);
+        return { success: true };
+      }
+      
+      if (retryAttempt % 5 === 0) {
+        log("未找到返回，继续检测", { attempt: retryAttempt, max: maxAttempts });
+      }
+      
+      sleepMs(30000);
+    }
+  }
+
+  log("未找到佣兵列队，本轮失败");
   return { success: false, reason: "return_timeout" };
 }
 
