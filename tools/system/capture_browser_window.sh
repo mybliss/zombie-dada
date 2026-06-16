@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 target="${1:-chrome-left}"
 outfile="${2:-/tmp/browser_front_window.png}"
+no_focus="${3:-}"
 
 if [[ "$target" != "chrome" && "$target" != "chrome-left" && "$target" != "chrome-right" && "$target" != "edge" && "$target" != "edge-left" && "$target" != "left" && "$target" != "right" ]]; then
   echo "usage: $0 <chrome|chrome-left|chrome-right|edge|edge-left|left|right> [outfile]" >&2
@@ -26,9 +27,11 @@ case "$target" in
     ;;
 esac
 
-osascript -e 'tell application "Codex" to hide' >/dev/null 2>&1 || true
-"$SCRIPT_DIR/focus_game_window.sh" "$target" >/dev/null
-sleep 0.25
+if [[ "$no_focus" != "--no-focus" && "$no_focus" != "no-focus" ]]; then
+  osascript -e 'tell application "Codex" to hide' >/dev/null 2>&1 || true
+  "$SCRIPT_DIR/focus_game_window.sh" "$target" >/dev/null
+  sleep 0.25
+fi
 
 screencapture -R"${left},${stop},${window_width},${screen_height}" "$outfile"
 echo "$outfile"

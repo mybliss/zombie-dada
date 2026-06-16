@@ -2,6 +2,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { spawnSync } from "child_process";
 import { parseMarkedResult, RESULT_MARKER } from "./tools/lib/runtime.mjs";
+import { ensureNativeTools } from "./tools/lib/ensure_tools.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const flowsDir = path.join(__dirname, "tools", "flows");
@@ -13,6 +14,15 @@ const extraArgs = process.argv.slice(4);
 if (!friendName) {
   console.error("usage: node ./run.mjs <friend_name> [loop|once] [extra_args...]");
   process.exit(2);
+}
+
+// macOS clears /tmp on reboot; (re)install the native OCR/click tools so the
+// flow never crashes with a missing /tmp/ocr_text again.
+try {
+  ensureNativeTools({ log: true });
+} catch (error) {
+  console.error(`[ensure-tools] failed to provision native tools: ${error.message}`);
+  process.exit(1);
 }
 
 const scriptName = mode === "loop" ? "repeat_send_accept_start.mjs" : "send_and_accept.mjs";

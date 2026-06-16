@@ -22,11 +22,11 @@ export const TIMINGS = {
   postAcceptSettleMs: 200,
   beforeStartSettleMs: 0,
   postStartSettleMs: 1000,
-  returnTimeoutMs: 600000,
+  returnTimeoutMs: 6000000,
   returnPollMs: 10000,
   returnInitialDelayMs: 360000,
-  invitePopupOpenSettleMs: 180,
-  inviteFriendsTabSettleMs: 300,
+  invitePopupOpenSettleMs: 700,
+  inviteFriendsTabSettleMs: 600,
 };
 
 export const WINDOW_ROLE_BROWSERS = {

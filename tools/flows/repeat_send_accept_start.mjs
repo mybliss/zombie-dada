@@ -49,9 +49,9 @@ if (!friendName) {
 }
 
 const rounds = Number.parseInt(process.argv[3] || "999999", 10);
-const returnTimeoutMs = Number.parseInt(process.argv[4] || "600000", 10);
-const returnPollMs = Number.parseInt(process.argv[5] || "5000", 10);
-const returnInitialDelayMs = Number.parseInt(process.argv[6] || "300000", 10);
+const returnTimeoutMs = Number.parseInt(process.argv[4] || String(TIMINGS.returnTimeoutMs), 10);
+const returnPollMs = Number.parseInt(process.argv[5] || String(TIMINGS.returnPollMs), 10);
+const returnInitialDelayMs = Number.parseInt(process.argv[6] || String(TIMINGS.returnInitialDelayMs), 10);
 
 const results = [];
 
